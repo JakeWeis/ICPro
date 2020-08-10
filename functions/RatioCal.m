@@ -279,7 +279,7 @@ else
         
         %% STEP 4: MASS BIAS CORRECTION
         
-        CRM145 = 0.71114/0.0051579;
+        CRM145 = 137.285066;
         U235_234_mean = mean(U235_234);
         dU235_234_mean = sqrt(sum((dU235_234./U235_234).^2))/par.nBlocks+2;
         f = (log(CRM145/U235_234_mean))/log(235.044/234.0409468);
