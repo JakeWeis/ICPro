@@ -143,7 +143,7 @@ UIcontr_ProceedButton.ButtonPushedFcn = @Proceed;
         par.NatUIDstr = UIcontr_NatUChars.Value;
         par.IDsel = UIcontr_IDcalc.Value;
         
-        RatioCal(par)
+        run functions/RatioCal(par)
     end
 
 end

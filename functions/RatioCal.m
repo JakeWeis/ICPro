@@ -324,7 +324,7 @@ end
 
 if par.IDsel == 1
     %% ISOTOPIC DILUTION & PARTICLE FLUX
-    IDFVInput(SampleSeq,ResTab1,ResTab2,par)
+    run functions/IDFVInput(SampleSeq,ResTab1,ResTab2,par)
 else
     %% SAVE AND DISPLAY TABLE A
     writetable(ResTab1, [par.RawDataDir,'output/SampleRatios.xlsx'])
