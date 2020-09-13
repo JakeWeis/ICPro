@@ -134,6 +134,7 @@ UIcontr_ProceedButton.ButtonPushedFcn = @Proceed;
     end
 
     function Proceed(~,~)
+        par.FDir = dir([mfilename('fullpath'),'.m']);
         par.Type = UIcontr_TypeSwitch.Value;
         par.RawDataDir = UIcontr_RawDataDir.Value;
         par.nBlocks = str2num(UIcontr_Blocks.Value);
@@ -143,6 +144,7 @@ UIcontr_ProceedButton.ButtonPushedFcn = @Proceed;
         par.NatUIDstr = UIcontr_NatUChars.Value;
         par.IDsel = UIcontr_IDcalc.Value;
         
+        cd(par.FDir.folder)
         run functions/RatioCal(par)
     end
 

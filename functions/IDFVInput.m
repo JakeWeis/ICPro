@@ -195,6 +195,6 @@ InputB.Callback = {@InputData,ResTab1,ResTab2,par};
         IDinput.RY_U = str2num(UIcontr_RYU.String);
         IDinput.RX_U = str2num(UIcontr_RXU.String);
         IDinput.CY_U = str2num(UIcontr_CYU.String);
-        run functions/IDFVcal(IDinput,ResTab1,ResTab2,par)
+        run IDFVcal(IDinput,ResTab1,ResTab2,par)
     end
 end
