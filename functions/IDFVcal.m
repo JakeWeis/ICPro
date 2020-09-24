@@ -7,6 +7,8 @@ Th230Conc = 1/ThMassRatio .* IDinput.CY_Th .* ...
     ((IDinput.RY_Th - IDinput.ThRatio)./(IDinput.ThRatio - IDinput.RX_Th)) .* ...
     1/(IDinput.RY_Th + 1) .*...
     10^-6;
+lambda230 = 9.15771E-06;
+Th230Acti = Th230Conc * lambda230;
 
 UMassRatio = 236.045568/234.0409468;
 U234Conc = 1/UMassRatio .* IDinput.CY_U .* ...
@@ -14,11 +16,15 @@ U234Conc = 1/UMassRatio .* IDinput.CY_U .* ...
     ((IDinput.RY_U - IDinput.URatio)./(IDinput.URatio - IDinput.RX_U)) .* ...
     1/(IDinput.RY_U + 1) .* ...
     10^-6;
+lambda234 = 2.82629E-06;
+U230Acti = Th230Conc * lambda234;
 
 
 dScale = 0.0001;
 s_Th230Conc = NaN;
 s_U234Conc = NaN;
+s_Th230Acti = NaN;
+s_U234Acti = NaN;
 
 %% Conversion ppm --> dpm
 Th230dpm = Th230Conc * 45781.96174;
@@ -73,7 +79,6 @@ ResTab1.Properties.VariableNames = {'SampleID',...
     'U234Conc','sigma_U234Conc','sigmaP_U234Conc',...
     'FV','sigma_FV','sigmaP_FV'};
 
-par.RawDataDir = '/Users/JakeBook/Documents/Study/3 MSC/RP - Guided Research (IMAS)/data/1 ICP-MS/BATCH 1/190819_Jake_Ratios/';
 writetable(ResTab1, [par.RawDataDir,'output/SampleRatios.xlsx'])
 writetable(ResTab2, [par.RawDataDir,'output/NatURatios.xlsx'])
 
