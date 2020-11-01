@@ -1,12 +1,12 @@
-function RatioCal(par)
+function ThU_Processor(ThUpar)
 
-FileList = dir([par.RawDataDir,'*.txt']);
+FileList = dir([ThUpar.ThURawPath,'*.txt']);
 NameList.tot = {FileList.name}';
-NameList.samples = NameList.tot(contains(NameList.tot,par.sampleIDstr));
-NameList.ICPblanks = NameList.tot(contains(NameList.tot,par.blankIDstr));
-NameList.ICPnatU = NameList.tot(contains(NameList.tot,par.NatUIDstr));
+NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
+NameList.ICPblanks = NameList.tot(contains(NameList.tot,ThUpar.BID));
+NameList.ICPnatU = NameList.tot(contains(NameList.tot,ThUpar.NatUID));
 
-if length(par.lSeq) > 1 && length(par.lSeq) ~= par.nBlocks
+if length(ThUpar.NSamples) > 1 && length(ThUpar.NSamples) ~= ThUpar.NBlocks
     errordlg('Number of samples per block needs to be a single value or one value per block (semicolon-separated).','Incorrect input')
 elseif isempty(NameList.samples)
     errordlg('Sample-ID character sequence not found.','Incorrect input')
@@ -19,40 +19,40 @@ else
     % Determine delimiter of raw files
     Dels = {';','\t',',',' '};
     for i = 1 : length(Dels)
-        DelCheck{i} = class(importdata([par.RawDataDir,NameList.samples{1}],Dels{i},12));
+        DelCheck{i} = class(importdata([ThUpar.ThURawPath,NameList.samples{1}],Dels{i},12));
     end
     Del = Dels(strcmp(DelCheck,'struct'));Del = Del{1};
     
-    nRunCheck = importdata([par.RawDataDir,NameList.samples{1}],Del,12);
+    nRunCheck = importdata([ThUpar.ThURawPath,NameList.samples{1}],Del,12);
     nRuns = size(nRunCheck.data(1,2:end),2);
     %% CREATE SEQUENCE: Sample Sequence
-    if length(par.lSeq) == 1
-        SampleSeq = cell(par.lSeq,par.nBlocks);
-        for i = 1 : par.nBlocks
-            SampleSeq(1:par.lSeq,i) = NameList.samples(1+par.lSeq*(i-1):1+par.lSeq*(i-1)+par.lSeq-1);
+    if length(ThUpar.NSamples) == 1
+        SampleSeq = cell(ThUpar.NSamples,ThUpar.NBlocks);
+        for i = 1 : ThUpar.NBlocks
+            SampleSeq(1:ThUpar.NSamples,i) = NameList.samples(1+ThUpar.NSamples*(i-1):1+ThUpar.NSamples*(i-1)+ThUpar.NSamples-1);
         end
-    elseif length(par.lSeq) > 1
-        SampleSeq = cell(max(par.lSeq),par.nBlocks);
-        for i = 1 : par.nBlocks
+    elseif length(ThUpar.NSamples) > 1
+        SampleSeq = cell(max(ThUpar.NSamples),ThUpar.NBlocks);
+        for i = 1 : ThUpar.NBlocks
             if i == 1
-                SampleSeq(1:par.lSeq(1),i) = NameList.samples(1:par.lSeq(1));
+                SampleSeq(1:ThUpar.NSamples(1),i) = NameList.samples(1:ThUpar.NSamples(1));
             else
-                SampleSeq(1:par.lSeq(i),i) = NameList.samples(sum(par.lSeq(1:i-1))+1:sum(par.lSeq(1:i-1))+par.lSeq(i));
+                SampleSeq(1:ThUpar.NSamples(i),i) = NameList.samples(sum(ThUpar.NSamples(1:i-1))+1:sum(ThUpar.NSamples(1:i-1))+ThUpar.NSamples(i));
             end
         end
     end
     
-    if length(par.lSeq) == 1 && par.lSeq*par.nBlocks ~= numel(NameList.samples)
+    if length(ThUpar.NSamples) == 1 && ThUpar.NSamples*ThUpar.NBlocks ~= numel(NameList.samples)
         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
-            ') does not match the number of samples to be processed (',num2str(sum(par.lSeq)),...
+            ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
             'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
             '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
             '3,3,3,3,3,3,3,4).'])
         error('The processing has been terminated (see warning above).')
-    elseif length(par.lSeq) > 1 && sum(par.lSeq) ~= numel(NameList.samples)
+    elseif length(ThUpar.NSamples) > 1 && sum(ThUpar.NSamples) ~= numel(NameList.samples)
         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
-            ') does not match the number of samples to be processed (',num2str(sum(par.lSeq)),...
+            ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
             'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
             '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
@@ -61,15 +61,15 @@ else
     end
     
     % Sample Blanks
-    SBlankSeq = cell(2,par.nBlocks);
-    for i = 1 : par.nBlocks
+    SBlankSeq = cell(2,ThUpar.NBlocks);
+    for i = 1 : ThUpar.NBlocks
         SBlankSeq(1:2,i) = NameList.ICPblanks([2+2*(i-1),3+2*(i-1)]);
     end
     
     %% CREATE SEQUENCE: NatU CRM Sequence
-    NatUSeq = cell(1,par.nBlocks+2);
-    NBlankSeq = cell(1,par.nBlocks+2);
-    for i = 1 : par.nBlocks+2
+    NatUSeq = cell(1,ThUpar.NBlocks+2);
+    NBlankSeq = cell(1,ThUpar.NBlocks+2);
+    for i = 1 : ThUpar.NBlocks+2
         NatUSeq(1,i) = NameList.ICPnatU(i);
         % NatU CRM Blanks
         if i == 1 || i == 2 || i == 3
@@ -83,7 +83,7 @@ else
     Sequence{1,1} = NBlankSeq{1};
     Sequence{2,1} = NatUSeq{1};
     Sequence{3,1} = NatUSeq{2};
-    for i = 1 : par.nBlocks
+    for i = 1 : ThUpar.NBlocks
         block{1,1} = SBlankSeq{1,i};
         for j = 1 : size(SampleSeq,1)
             if ~(isempty(SampleSeq{j,i}))
@@ -101,8 +101,8 @@ else
     for i = 1 : length(Sequence)
         Sequence{i} = Sequence{i}(1:end-4);
     end
-    if ~(exist([par.RawDataDir,'output/'],'dir'))
-        mkdir([par.RawDataDir,'output'])
+    if ~(exist([ThUpar.ThURawPath,'output/'],'dir'))
+        mkdir([ThUpar.ThURawPath,'output'])
     end
     
     [~,SeqCheck] = listdlg('PromptString','Confirm sequence',...
@@ -113,48 +113,48 @@ else
     if SeqCheck == 1
         TabSeq = table(Sequence);
         TabSeq.Properties.VariableNames = {'SEQUENCE'};
-        writetable(TabSeq,[par.RawDataDir,'output/Sequence.txt'],'Delimiter',' ')
+        writetable(TabSeq,[ThUpar.ThURawPath,'output/Sequence.txt'],'Delimiter',' ')
         
         %% STEP 1: TAILING & BLANK CORRECTION
         
         %%% Sample blank correction
-        I_Sample_cTB = NaN(35,nRuns,max(par.lSeq),par.nBlocks);
-        for i = 1 : par.nBlocks
+        I_Sample_cTB = NaN(35,nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
+        for i = 1 : ThUpar.NBlocks
             % Blank A raw intensities (correcting first half of sample block)
-            DirBlankA = strcat(par.RawDataDir,SBlankSeq{1,i});
+            DirBlankA = strcat(ThUpar.ThURawPath,SBlankSeq{1,i});
             I_SBlankA = importdata(DirBlankA,Del,12);
             I_SBlankA = I_SBlankA.data(:,2:end);
             % Blank B raw intensities (correcting second half of sample block)
-            DirBlankB = strcat(par.RawDataDir,SBlankSeq{2,i});
+            DirBlankB = strcat(ThUpar.ThURawPath,SBlankSeq{2,i});
             I_SBlankB = importdata(DirBlankB,Del,12);
             I_SBlankB = I_SBlankB.data(:,2:end);
             
             %%% Even & constant number of samples per block
-            if length(par.lSeq) == 1 && ~(rem(par.lSeq,2))
-                j = 1 : par.lSeq/2;
-                k = par.lSeq/2+1 : par.lSeq;
+            if length(ThUpar.NSamples) == 1 && ~(rem(ThUpar.NSamples,2))
+                j = 1 : ThUpar.NSamples/2;
+                k = ThUpar.NSamples/2+1 : ThUpar.NSamples;
             %%% Odd & constant number of samples per block
-            elseif length(par.lSeq) == 1 && ~(~(rem(par.lSeq,2)))
-                j = 1 : par.lSeq/2+0.5;
-                k = par.lSeq/2+1.5 : par.lSeq;
+            elseif length(ThUpar.NSamples) == 1 && ~(~(rem(ThUpar.NSamples,2)))
+                j = 1 : ThUpar.NSamples/2+0.5;
+                k = ThUpar.NSamples/2+1.5 : ThUpar.NSamples;
             %%% Variable number of samples per block (even number of samples)
-            elseif length(par.lSeq) > 1 && ~(rem(par.lSeq(i),2))
-                j = 1 : par.lSeq(i)/2;
-                k = par.lSeq(i)/2+1 : par.lSeq(i);
+            elseif length(ThUpar.NSamples) > 1 && ~(rem(ThUpar.NSamples(i),2))
+                j = 1 : ThUpar.NSamples(i)/2;
+                k = ThUpar.NSamples(i)/2+1 : ThUpar.NSamples(i);
                 %%% Variable number of samples per block (odd number of samples)
-            elseif length(par.lSeq) > 1 && ~(~(rem(par.lSeq(i),2)))
-                j = 1 : par.lSeq(i)/2+0.5;
-                k = par.lSeq(i)/2+1.5 : par.lSeq(i);
+            elseif length(ThUpar.NSamples) > 1 && ~(~(rem(ThUpar.NSamples(i),2)))
+                j = 1 : ThUpar.NSamples(i)/2+0.5;
+                k = ThUpar.NSamples(i)/2+1.5 : ThUpar.NSamples(i);
             end
             
             % First half of sample block
             for j = j
-                DirSampleA = strcat(par.RawDataDir,SampleSeq{j,i});
+                DirSampleA = strcat(ThUpar.ThURawPath,SampleSeq{j,i});
                 I_SampleA = importdata(DirSampleA,Del,12);
                 % Sample raw intensities
                 I_SampleA = I_SampleA.data(:,2:end);
                 nRuns = size(I_SampleA,2);
-                if par.Type == 0
+                if ThUpar.SType == 0
                     % Tailing Correction
                     Mlm = zeros(size(I_SampleA));
                     Mlm(11:15,:) = (I_SampleA(6:10,:)-I_SampleA(16:20,:))./...
@@ -168,11 +168,11 @@ else
             
             % Second half of sample block
             for k = k
-                DirSampleB = strcat(par.RawDataDir,SampleSeq{k,i});
+                DirSampleB = strcat(ThUpar.ThURawPath,SampleSeq{k,i});
                 I_SampleB = importdata(DirSampleB,Del,12);
                 % Sample raw intensities
                 I_SampleB = I_SampleB.data(:,2:end);
-                if par.Type == 0
+                if ThUpar.SType == 0
                     % Tailing Correction
                     Mlm = zeros(size(I_SampleB));
                     Mlm(11:15,:) = (I_SampleB(6:10,:)-I_SampleB(16:20,:))./...
@@ -186,15 +186,15 @@ else
         end
         
         %%% NatU blank correction
-        I_NatU_cB = NaN(35,nRuns,par.nBlocks+2);
-        for i = 1 : par.nBlocks+2
+        I_NatU_cB = NaN(35,nRuns,ThUpar.NBlocks+2);
+        for i = 1 : ThUpar.NBlocks+2
             % NatU Blank raw intensities
-            DirNBlank = strcat(par.RawDataDir,NBlankSeq{i});
+            DirNBlank = strcat(ThUpar.ThURawPath,NBlankSeq{i});
             I_NBlank = importdata(DirNBlank,Del,12);
             I_NBlank = I_NBlank.data(:,2:end);
             
             % NatU raw intensities
-            DirNatU = strcat(par.RawDataDir,NatUSeq{i});
+            DirNatU = strcat(ThUpar.ThURawPath,NatUSeq{i});
             I_NatU = importdata(DirNatU,Del,12);
             I_NatU = I_NatU.data(:,2:end);
             
@@ -245,17 +245,17 @@ else
         dIm_NatU_cB(dIm_NatU_cB < 0) = 0;
         
         %% STEP 3: RATIOS (+STD)
-        Th229_230 = NaN(max(par.lSeq),par.nBlocks);
-        U236_234 = NaN(max(par.lSeq),par.nBlocks);
-        U235_234 = NaN(par.nBlocks,1);
-        dTh229_230 = NaN(max(par.lSeq),par.nBlocks);
-        dU236_234 = NaN(max(par.lSeq),par.nBlocks);
-        dU235_234 = NaN(par.nBlocks,1);
-        for i = 1 : par.nBlocks
-            if length(par.lSeq) == 1
-                j = 1 : par.lSeq;
+        Th229_230 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
+        U236_234 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
+        U235_234 = NaN(ThUpar.NBlocks,1);
+        dTh229_230 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
+        dU236_234 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
+        dU235_234 = NaN(ThUpar.NBlocks,1);
+        for i = 1 : ThUpar.NBlocks
+            if length(ThUpar.NSamples) == 1
+                j = 1 : ThUpar.NSamples;
             else
-                j = 1 : par.lSeq(i);
+                j = 1 : ThUpar.NSamples(i);
             end
             
             for j = j
@@ -270,7 +270,7 @@ else
             end
         end
         
-        for i = 1 : par.nBlocks+2
+        for i = 1 : ThUpar.NBlocks+2
             U235_234(i,1) = Im_NatU_cB(6,:,i)./Im_NatU_cB(5,:,i);
             dU235_234(i,1) = U235_234(i,1)*sqrt(...
                 (dIm_NatU_cB(6,:,i)/Im_NatU_cB(6,:,i))^2+...
@@ -281,7 +281,7 @@ else
         
         CRM145 = 137.285066;
         U235_234_mean = mean(U235_234);
-        dU235_234_mean = sqrt(sum((dU235_234./U235_234).^2))/par.nBlocks+2;
+        dU235_234_mean = sqrt(sum((dU235_234./U235_234).^2))/ThUpar.NBlocks+2;
         f = (log(CRM145/U235_234_mean))/log(235.044/234.0409468);
         df = abs((dU235_234_mean./U235_234_mean)/(log(235.044/234.0409468)));
         
@@ -322,13 +322,13 @@ else
     end
 end
 
-if par.IDsel == 1
+if ThUpar.IDsel == 1
     %% ISOTOPIC DILUTION & PARTICLE FLUX
     run IDFVInput(SampleSeq,ResTab1,ResTab2,par)
 else
     %% SAVE AND DISPLAY TABLE A
-    writetable(ResTab1, [par.RawDataDir,'output/SampleRatios.xlsx'])
-    writetable(ResTab2, [par.RawDataDir,'output/NatURatios.xlsx'])
+    writetable(ResTab1, [ThUpar.ThURawPath,'output/SampleRatios.xlsx'])
+    writetable(ResTab2, [ThUpar.ThURawPath,'output/NatURatios.xlsx'])
     
     TableFig = figure;
     TableFig.Position = [100 100 640 652];
