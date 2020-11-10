@@ -1,9 +1,14 @@
-function [C_RAW,dC_RAW,Isotopes,RunID] = TE_ReadRaw(TEpar,mode)
+function [C,dC,Isotopes,RunID] = TE_ReadRaw(TEpar,mode)
 % Extract ICP data from raw data spread sheet
 
 %% ID strings
+% clear
 % if ~contains(TEpar.RawPath,'rawfile2')
 %     % Example 1
+%     TEpar.RawPath = '/Users/jweis/Documents/Study/3 - MSC/RP - Guided Research (IMAS)/1 - Data/1 ICP-MS/BATCH 3/TM_B3_superraw.xlsx';
+%     TEpar.SID = 'JW';
+%     TEpar.BID = 'Blk24';
+%     TEpar.RawPath = '/Users/jweis/Documents/Study/5 - PHD/5 - Misc/RA/rawfile.xlsx';
 %     TEpar.SID = 'GC';
 %     TEpar.BID = 'Blk1';
 %     TEpar.VID = 'spike';
@@ -28,6 +33,8 @@ for iC = 1 : length(RunHeader)
         RunIDColumn.All(counter,1) = iC;
     end
 end
+RunIDColumn.All(2:length(RunIDColumn.All(:,1)),2) = diff(RunIDColumn.All(:,1));
+RunIDColumn.All(1,2) = RunIDColumn.All(2,2);
 
 %% Sort runs into groups
 RunID.AllInd = repmat('x',length(RunID.All),1);
@@ -51,49 +58,70 @@ RunID.Spike = RunID.All(RunID.AllInd == 'V');
 RunID.Rinse = RunID.All(RunID.AllInd == 'R');
 RunID.QC = RunID.All(RunID.AllInd == 'Q');
 
-RunIDColumn.Sample = RunIDColumn.All(RunID.AllInd == 'S');
-RunIDColumn.Blank = RunIDColumn.All(RunID.AllInd == 'B');
-RunIDColumn.Spike = RunIDColumn.All(RunID.AllInd == 'V');
-RunIDColumn.Rinse = RunIDColumn.All(RunID.AllInd == 'R');
-RunIDColumn.QC = RunIDColumn.All(RunID.AllInd == 'Q');
+RunIDColumn.Sample = RunIDColumn.All(RunID.AllInd == 'S',1);
+RunIDColumn.Blank = RunIDColumn.All(RunID.AllInd == 'B',1);
+RunIDColumn.Spike = RunIDColumn.All(RunID.AllInd == 'V',1);
+RunIDColumn.Rinse = RunIDColumn.All(RunID.AllInd == 'R',1);
+RunIDColumn.QC = RunIDColumn.All(RunID.AllInd == 'Q',1);
+
+RunIDnColumn.Sample = RunIDColumn.All(RunID.AllInd == 'S',2);
+RunIDnColumn.Blank = RunIDColumn.All(RunID.AllInd == 'B',2);
+RunIDnColumn.Spike = RunIDColumn.All(RunID.AllInd == 'V',2);
+RunIDnColumn.Rinse = RunIDColumn.All(RunID.AllInd == 'R',2);
+RunIDnColumn.QC = RunIDColumn.All(RunID.AllInd == 'Q',2);
 
 %% Extract list of isotopes
-Isotopes = table2cell(readtable(TEpar.RawPath,'Range',[4,1,44,1]));
+Isotopes = table2cell(readtable(TEpar.RawPath,'Range','A:A','ReadVariableNames',0));
+rowS = find(contains(Isotopes,'LR'),1,'first');
+rowE = find(contains(Isotopes,'MR'),1,'last');
+Isotopes([1:rowS-1,rowE+1:end]) = [];
+% find empty rows
+rowNA = false(length(Isotopes),1);
 for iI = 1 : length(Isotopes)
-    Isotopes{iI} = Isotopes{iI}(1:end-4);
+    rowNA(iI,1) = isempty(Isotopes{iI});
 end
-Isotopes(1:2) = [];
+Isotopes(rowNA) = [];
 
 if mode == 1
     %% Extract data of each measurement run and convert from ppb to ppm
     for iR = 1 : length(RunID.Sample)
-        Data = readtable(TEpar.RawPath,'Range',[4,RunIDColumn.Sample(iR),44,RunIDColumn.Sample(iR)+5],'ReadVariableNames',0);
-        C_RAW.Sample(:,iR) = Data{:,1}/1000;
-        dC_RAW.Sample(:,iR) = Data{:,3}/1000;
+        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Sample(iR),rowE,RunIDColumn.Sample(iR)+RunIDnColumn.Sample(iR)-1],'ReadVariableNames',0);
+        C.Raw.Sample(:,iR) = Data{:,1}/1000;
+        dC.Raw.Sample(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
     end
+    C.Raw.Sample(rowNA,:) = [];
+    dC.Raw.Sample(rowNA,:) = [];
     for iR = 1 : length(RunID.Blank)
-        Data = readtable(TEpar.RawPath,'Range',[4,RunIDColumn.Blank(iR),44,RunIDColumn.Blank(iR)+5],'ReadVariableNames',0);
-        C_RAW.Blank(:,iR) = Data{:,1}/1000;
-        dC_RAW.Blank(:,iR) = Data{:,3}/1000;
+        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Blank(iR),rowE,RunIDColumn.Blank(iR)+RunIDnColumn.Blank(iR)-1],'ReadVariableNames',0);
+        C.Raw.Blank(:,iR) = Data{:,1}/1000;
+        dC.Raw.Blank(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
     end
+    C.Raw.Blank(rowNA,:) = [];
+    dC.Raw.Blank(rowNA,:) = [];
     for iR = 1 : length(RunID.Spike)
-        Data = readtable(TEpar.RawPath,'Range',[4,RunIDColumn.Spike(iR),44,RunIDColumn.Spike(iR)+5],'ReadVariableNames',0);
-        C_RAW.Spike(:,iR) = Data{:,1}/1000;
-        dC_RAW.Spike(:,iR) = Data{:,3}/1000;
+        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Spike(iR),rowE,RunIDColumn.Spike(iR)+RunIDnColumn.Spike(iR)-1],'ReadVariableNames',0);
+        C.Raw.Spike(:,iR) = Data{:,1}/1000;
+        dC.Raw.Spike(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
     end
+    C.Raw.Spike(rowNA,:) = [];
+    dC.Raw.Spike(rowNA,:) = [];
     for iR = 1 : length(RunID.Rinse)
-        Data = readtable(TEpar.RawPath,'Range',[4,RunIDColumn.Rinse(iR),44,RunIDColumn.Rinse(iR)+5],'ReadVariableNames',0);
-        C_RAW.Rinse(:,iR) = Data{:,1}/1000;
-        dC_RAW.Rinse(:,iR) = Data{:,3}/1000;
+        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Rinse(iR),rowE,RunIDColumn.Rinse(iR)+RunIDnColumn.Rinse(iR)-1],'ReadVariableNames',0);
+        C.Raw.Rinse(:,iR) = Data{:,1}/1000;
+        dC.Raw.Rinse(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
     end
+    C.Raw.Rinse(rowNA,:) = [];
+    dC.Raw.Rinse(rowNA,:) = [];
     for iR = 1 : length(RunID.QC)
-        Data = readtable(TEpar.RawPath,'Range',[4,RunIDColumn.QC(iR),44,RunIDColumn.QC(iR)+5],'ReadVariableNames',0);
-        C_RAW.QC(:,iR) = Data{:,1}/1000;
-        dC_RAW.QC(:,iR) = Data{:,3}/1000;
+        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.QC(iR),rowE,RunIDColumn.QC(iR)+RunIDnColumn.QC(iR)-1],'ReadVariableNames',0);
+        C.Raw.QC(:,iR) = Data{:,1}/1000;
+        dC.Raw.QC(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
     end
+    C.Raw.QC(rowNA,:) = [];
+    dC.Raw.QC(rowNA,:) = [];
 else
-    C_RAW = NaN;
-    dC_RAW = NaN;
+    C.Raw = NaN;
+    dC.Raw = NaN;
 end
 
 end

@@ -1,5 +1,8 @@
-function ThU_Processor(ThUpar)
+function [ResTab1, ResTab2] = ThU_Processor(ThUpar)
 
+if ThUpar.ThURawPath(end) ~= '/'
+    ThUpar.ThURawPath(end+1) = '/'
+end
 FileList = dir([ThUpar.ThURawPath,'*.txt']);
 NameList.tot = {FileList.name}';
 NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
@@ -327,28 +330,28 @@ if ThUpar.IDsel == 1
     run IDFVInput(SampleSeq,ResTab1,ResTab2,par)
 else
     %% SAVE AND DISPLAY TABLE A
-    writetable(ResTab1, [ThUpar.ThURawPath,'output/SampleRatios.xlsx'])
-    writetable(ResTab2, [ThUpar.ThURawPath,'output/NatURatios.xlsx'])
-    
-    TableFig = figure;
-    TableFig.Position = [100 100 640 652];
-    TableFig.ToolBar = 'none';
-    TableFig.MenuBar = 'none';
-    TableFig.NumberTitle = 'off';
-    TableFig.Name = 'Results';
-    
-    ColumnNames1 = {'229Th/230Th',char(963),[char(963), ' [%]'],...
-        '236U/234U',char(963),[char(963), ' [%]']};
-    ResTabUI1 = uitable(TableFig,'Data',ResTab1{:,2:end});
-    ResTabUI1.ColumnName = ColumnNames1';
-    ResTabUI1.RowName = ResTab1{:,1};
-    ResTabUI1.Position = [10 212 620 430];
-    
-    ColumnNames2 = {'U235/U234',char(963),[char(963), ' [%]']};
-    ResTabUI2 = uitable(TableFig,'Data',ResTab2{:,2:end});
-    ResTabUI2.ColumnName = ColumnNames2';
-    ResTabUI2.RowName = ResTab2{:,1};
-    ResTabUI2.Position = [10 10 360 192];
+%     writetable(ResTab1, [ThUpar.ThURawPath,'output/SampleRatios.xlsx'])
+%     writetable(ResTab2, [ThUpar.ThURawPath,'output/NatURatios.xlsx'])
+%     
+%     TableFig = figure;
+%     TableFig.Position = [100 100 640 652];
+%     TableFig.ToolBar = 'none';
+%     TableFig.MenuBar = 'none';
+%     TableFig.NumberTitle = 'off';
+%     TableFig.Name = 'Results';
+%     
+%     ColumnNames1 = {'229Th/230Th',char(963),[char(963), ' [%]'],...
+%         '236U/234U',char(963),[char(963), ' [%]']};
+%     ResTabUI1 = uitable(TableFig,'Data',ResTab1{:,2:end});
+%     ResTabUI1.ColumnName = ColumnNames1';
+%     ResTabUI1.RowName = ResTab1{:,1};
+%     ResTabUI1.Position = [10 212 620 430];
+%     
+%     ColumnNames2 = {'U235/U234',char(963),[char(963), ' [%]']};
+%     ResTabUI2 = uitable(TableFig,'Data',ResTab2{:,2:end});
+%     ResTabUI2.ColumnName = ColumnNames2';
+%     ResTabUI2.RowName = ResTab2{:,1};
+%     ResTabUI2.Position = [10 10 360 192];
 end
 
 end

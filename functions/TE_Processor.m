@@ -1,4 +1,4 @@
-function [C,dC] = TE_Processor(TEpar,C_RAW,dC_RAW,Isotopes,RunID,WtPar,SpikePar,cps)
+function [C,dC,IsotopesID] = TE_Processor(TEpar,C,dC,Isotopes,RunID,WtPar,SpikePar,cps)
 
 %% 1) Concentrations and errors (in ppm), read from raw file
 % clear
@@ -12,8 +12,8 @@ Rloc = find(RunID.AllInd == 'R'); % Rinse locations in measurement sequence
 Qloc = find(RunID.AllInd == 'Q'); % QC locations in measurement sequence
 
 %% 2) Rinse Correction (RC)
-C_RC = C_RAW;
-dC_RC = dC_RAW;
+C.RC = C.Raw;
+dC.RC = dC.Raw;
 
 if TEpar.CCheck.RC == true
     % Samples
@@ -23,9 +23,9 @@ if TEpar.CCheck.RC == true
         R1 = find(Rdiff == max(Rdiff(Rdiff<0)));
         R2 = find(Rdiff == min(Rdiff(Rdiff>0)));
         % correct raw concentrations for mean rinse concentration (mean of R1 and R2)
-        C_RC.Sample(:,iS) = C_RAW.Sample(:,iS) - mean([C_RAW.Rinse(:,R1),C_RAW.Rinse(:,R2)],2);
+        C.RC.Sample(:,iS) = C.Raw.Sample(:,iS) - mean([C.Raw.Rinse(:,R1),C.Raw.Rinse(:,R2)],2);
         % propagate errors
-        dC_RC.Sample(:,iS) = sqrt(dC_RAW.Sample(:,iS).^2 + (dC_RAW.Rinse(:,R1)/2).^2 + (dC_RAW.Rinse(:,R2)/2).^2);
+        dC.RC.Sample(:,iS) = sqrt(dC.Raw.Sample(:,iS).^2 + (dC.Raw.Rinse(:,R1)/2).^2 + (dC.Raw.Rinse(:,R2)/2).^2);
         
         % correct raw intensities of Th and U (for isotopic dilution)
         % +++++++++++++ Requires rinse raw counts ++++++++++++++++++++
@@ -45,9 +45,9 @@ if TEpar.CCheck.RC == true
         R1 = find(Rdiff == max(Rdiff(Rdiff<0)));
         R2 = find(Rdiff == min(Rdiff(Rdiff>0)));
         % correct raw concentrations for mean rinse concentration (mean of R1 and R2)
-        C_RC.Spike(:,iV) = C_RAW.Spike(:,iV) - mean([C_RAW.Rinse(:,R1),C_RAW.Rinse(:,R2)],2);
+        C.RC.Spike(:,iV) = C.Raw.Spike(:,iV) - mean([C.Raw.Rinse(:,R1),C.Raw.Rinse(:,R2)],2);
         % propagate errors
-        dC_RC.Spike(:,iV) = sqrt(dC_RAW.Spike(:,iV).^2 + (dC_RAW.Rinse(:,R1)/2).^2 + (dC_RAW.Rinse(:,R2)/2).^2);
+        dC.RC.Spike(:,iV) = sqrt(dC.Raw.Spike(:,iV).^2 + (dC.Raw.Rinse(:,R1)/2).^2 + (dC.Raw.Rinse(:,R2)/2).^2);
     end
     
     % Th & U raw intensities
@@ -60,9 +60,9 @@ if TEpar.CCheck.RC == true
     R1 = find(Rdiff == max(Rdiff(Rdiff<0)));
     R2 = find(Rdiff == min(Rdiff(Rdiff>0)));
     % correct raw concentrations for mean rinse concentration (mean of R1 and R2)
-    C_RC.Blank(:,1) = C_RAW.Blank(:,1) - mean([C_RAW.Rinse(:,R1),C_RAW.Rinse(:,R2)],2);
+    C.RC.Blank(:,1) = C.Raw.Blank(:,1) - mean([C.Raw.Rinse(:,R1),C.Raw.Rinse(:,R2)],2);
     % propagate errors
-    dC_RC.Blank(:,1) = sqrt(dC_RAW.Blank(:,1).^2 + (dC_RAW.Rinse(:,R1)/2).^2 + (dC_RAW.Rinse(:,R2)/2).^2);
+    dC.RC.Blank(:,1) = sqrt(dC.Raw.Blank(:,1).^2 + (dC.Raw.Rinse(:,R1)/2).^2 + (dC.Raw.Rinse(:,R2)/2).^2);
     
     % QC
     for iQ = 1 : length(Qloc)
@@ -74,21 +74,21 @@ if TEpar.CCheck.RC == true
         R2 = find(Rdiff == min(Rdiff(Rdiff>0)));
         if iQ > 1
             % correct raw concentrations for mean rinse concentration (mean of R1 and R2)
-            C_RC.QC(:,iQ) = C_RAW.QC(:,iQ) - mean([C_RAW.Rinse(:,R1),C_RAW.Rinse(:,R2)],2);
+            C.RC.QC(:,iQ) = C.Raw.QC(:,iQ) - mean([C.Raw.Rinse(:,R1),C.Raw.Rinse(:,R2)],2);
             % propagate errors
-            dC_RC.QC(:,iQ) = sqrt((dC_RAW.QC(:,iQ)).^2 + (dC_RAW.Rinse(:,R1)/2).^2 + (dC_RAW.Rinse(:,R2)/2).^2);
+            dC.RC.QC(:,iQ) = sqrt((dC.Raw.QC(:,iQ)).^2 + (dC.Raw.Rinse(:,R1)/2).^2 + (dC.Raw.Rinse(:,R2)/2).^2);
         else
             % correct raw concentrations for mean rinse concentration (mean of R1 and R2)
-            C_RC.QC(:,iQ) = C_RAW.QC(:,iQ) - C_RAW.Rinse(:,R2);
+            C.RC.QC(:,iQ) = C.Raw.QC(:,iQ) - C.Raw.Rinse(:,R2);
             % propagate errors
-            dC_RC.QC(:,iQ) = sqrt(dC_RAW.QC(:,iQ).^2 + dC_RAW.Rinse(:,R2).^2);
+            dC.RC.QC(:,iQ) = sqrt(dC.Raw.QC(:,iQ).^2 + dC.Raw.Rinse(:,R2).^2);
         end
     end
 end
 
 %% 3) QC correction (QC)
-C_QC = C_RC;
-dC_QC = dC_RC;
+C.QC = C.RC;
+dC.QC = dC.RC;
 
 if TEpar.CCheck.QC == true
     % Samples
@@ -98,11 +98,11 @@ if TEpar.CCheck.QC == true
         Q1 = find(Qdiff == max(Qdiff(Qdiff<0)));
         Q2 = find(Qdiff == min(Qdiff(Qdiff>0)));
         % correct RC concentrations for QC
-        f_QC = C_RC.QC(:,1)./mean([C_RC.QC(:,Q1),C_RC.QC(:,Q2)],2); % QC correction factor
-        C_QC.Sample(:,iS) = C_RC.Sample(:,iS) .* f_QC;
+        f_QC = C.RC.QC(:,1)./mean([C.RC.QC(:,Q1),C.RC.QC(:,Q2)],2); % QC correction factor
+        C.QC.Sample(:,iS) = C.RC.Sample(:,iS) .* f_QC;
         % propagate errors
-        df_QC = abs(f_QC) .* sqrt((dC_RC.QC(:,1)./C_RC.QC(:,1)).^2 + (sqrt(dC_RC.QC(:,Q1).^2+dC_RC.QC(:,Q2).^2)./(C_RC.QC(:,Q1)+C_RC.QC(:,Q2))).^2);
-        dC_QC.Sample(:,iS) = abs(C_QC.Sample(:,iS)) .* sqrt((dC_RC.Sample(:,iS)./C_RC.Sample(:,iS)).^2 + (df_QC./f_QC).^2);
+        df_QC = abs(f_QC) .* sqrt((dC.RC.QC(:,1)./C.RC.QC(:,1)).^2 + (sqrt(dC.RC.QC(:,Q1).^2+dC.RC.QC(:,Q2).^2)./(C.RC.QC(:,Q1)+C.RC.QC(:,Q2))).^2);
+        dC.QC.Sample(:,iS) = abs(C.QC.Sample(:,iS)) .* sqrt((dC.RC.Sample(:,iS)./C.RC.Sample(:,iS)).^2 + (df_QC./f_QC).^2);
     end
     
     % Spiked samples
@@ -112,11 +112,11 @@ if TEpar.CCheck.QC == true
         Q1 = find(Qdiff == max(Qdiff(Qdiff<0)));
         Q2 = find(Qdiff == min(Qdiff(Qdiff>0)));
         % correct RC concentrations for QC
-        f_QC = C_RC.QC(:,1)./mean([C_RC.QC(:,Q1),C_RC.QC(:,Q2)],2); % QC correction factor
-        C_QC.Spike(:,iV) = C_RC.Spike(:,iV) .* f_QC;
+        f_QC = C.RC.QC(:,1)./mean([C.RC.QC(:,Q1),C.RC.QC(:,Q2)],2); % QC correction factor
+        C.QC.Spike(:,iV) = C.RC.Spike(:,iV) .* f_QC;
         % propagate errors
-        df_QC = abs(f_QC) .* sqrt((dC_RC.QC(:,1)./C_RC.QC(:,1)).^2 + (sqrt(dC_RC.QC(:,Q1).^2+dC_RC.QC(:,Q2).^2)./(C_RC.QC(:,Q1)+C_RC.QC(:,Q2))).^2);
-        dC_QC.Spike(:,iV) = abs(C_QC.Spike(:,iV)) .* sqrt((dC_RC.Spike(:,iV)./C_RC.Spike(:,iV)).^2 + (df_QC./f_QC).^2);
+        df_QC = abs(f_QC) .* sqrt((dC.RC.QC(:,1)./C.RC.QC(:,1)).^2 + (sqrt(dC.RC.QC(:,Q1).^2+dC.RC.QC(:,Q2).^2)./(C.RC.QC(:,Q1)+C.RC.QC(:,Q2))).^2);
+        dC.QC.Spike(:,iV) = abs(C.QC.Spike(:,iV)) .* sqrt((dC.RC.Spike(:,iV)./C.RC.Spike(:,iV)).^2 + (df_QC./f_QC).^2);
     end
     
     % Procedural blank
@@ -125,16 +125,16 @@ if TEpar.CCheck.QC == true
     Q1 = find(Qdiff == max(Qdiff(Qdiff<0)));
     Q2 = find(Qdiff == min(Qdiff(Qdiff>0)));
     % correct RC concentrations for QC
-    f_QC = C_RC.QC(:,1)./mean([C_RC.QC(:,Q1),C_RC.QC(:,Q2)],2); % QC correction factor
-    C_QC.Blank(:,1) = C_RC.Blank(:,1) .* f_QC;
+    f_QC = C.RC.QC(:,1)./mean([C.RC.QC(:,Q1),C.RC.QC(:,Q2)],2); % QC correction factor
+    C.QC.Blank(:,1) = C.RC.Blank(:,1) .* f_QC;
     % propagate errors
-    df_QC = abs(f_QC) .* sqrt((dC_RC.QC(:,1)./C_RC.QC(:,1)).^2 + (sqrt(dC_RC.QC(:,Q1).^2+dC_RC.QC(:,Q2).^2)./(C_RC.QC(:,Q1)+C_RC.QC(:,Q2))).^2);
-    dC_QC.Blank(:,1) = abs(C_QC.Blank(:,1)) .* sqrt((dC_RC.Blank(:,1)./C_RC.Blank(:,1)).^2 + (df_QC./f_QC).^2);
+    df_QC = abs(f_QC) .* sqrt((dC.RC.QC(:,1)./C.RC.QC(:,1)).^2 + (sqrt(dC.RC.QC(:,Q1).^2+dC.RC.QC(:,Q2).^2)./(C.RC.QC(:,Q1)+C.RC.QC(:,Q2))).^2);
+    dC.QC.Blank(:,1) = abs(C.QC.Blank(:,1)) .* sqrt((dC.RC.Blank(:,1)./C.RC.Blank(:,1)).^2 + (df_QC./f_QC).^2);
 end
 
 %% 4) Spike correction (SC)
-C_SC = C_QC;
-dC_SC = dC_QC;
+C.SC = C.QC;
+dC.SC = dC.QC;
 
 if TEpar.CCheck.SC == true && ~isempty(Vloc)
     % Samples
@@ -148,11 +148,11 @@ if TEpar.CCheck.SC == true && ~isempty(Vloc)
             V1 = find(Vdiff == min(Vdiff(Vdiff>0)));
         end
         % correct RC concentrations for QC
-        f_SC = 0.1./(C_QC.Spike(:,V1) - C_QC.Sample(:,dsearchn(Sloc,Vloc(V1)))); % SC correction factor
-        C_SC.Sample(:,iS) = C_QC.Sample(:,iS) .* f_SC;
+        f_SC = 0.1./(C.QC.Spike(:,V1) - C.QC.Sample(:,dsearchn(Sloc,Vloc(V1)))); % SC correction factor
+        C.SC.Sample(:,iS) = C.QC.Sample(:,iS) .* f_SC;
         % propagate errors
-        df_SC = 0.1 * sqrt(dC_QC.Spike(:,V1).^2+dC_QC.Sample(:,dsearchn(Sloc,Vloc(V1))).^2)./(C_QC.Spike(:,V1) - C_QC.Sample(:,dsearchn(Sloc,Vloc(V1)))).^2;
-        dC_SC.Sample(:,iS) = abs(C_SC.Sample(:,iS)) .* sqrt((dC_QC.Sample(:,iS)./C_QC.Sample(:,iS)).^2 + (df_SC./f_SC).^2);
+        df_SC = 0.1 * sqrt(dC.QC.Spike(:,V1).^2+dC.QC.Sample(:,dsearchn(Sloc,Vloc(V1))).^2)./(C.QC.Spike(:,V1) - C.QC.Sample(:,dsearchn(Sloc,Vloc(V1)))).^2;
+        dC.SC.Sample(:,iS) = abs(C.SC.Sample(:,iS)) .* sqrt((dC.QC.Sample(:,iS)./C.QC.Sample(:,iS)).^2 + (df_SC./f_SC).^2);
     end
     
     % Procedural Blank
@@ -165,16 +165,16 @@ if TEpar.CCheck.SC == true && ~isempty(Vloc)
         V1 = find(Vdiff == min(Vdiff(Vdiff>0)));
     end
     % correct RC concentrations for QC
-    f_SC = 0.1./(C_QC.Spike(:,V1) - C_QC.Blank(:,dsearchn(Bloc,Vloc(V1)))); % SC correction factor
-    C_SC.Blank(:,1) = C_QC.Blank(:,1) .* f_SC;
+    f_SC = 0.1./(C.QC.Spike(:,V1) - C.QC.Blank(:,dsearchn(Bloc,Vloc(V1)))); % SC correction factor
+    C.SC.Blank(:,1) = C.QC.Blank(:,1) .* f_SC;
     % propagate errors
-    df_SC = 0.1 * sqrt(dC_QC.Spike(:,V1).^2+dC_QC.Blank(:,dsearchn(Bloc,Vloc(V1))).^2)./(C_QC.Spike(:,V1) - C_QC.Blank(:,dsearchn(Bloc,Vloc(V1)))).^2;
-    dC_SC.Blank(:,1) = abs(C_SC.Blank(:,1)) .* sqrt((dC_QC.Blank(:,1)./C_QC.Blank(:,1)).^2 + (df_SC./f_SC).^2);
+    df_SC = 0.1 * sqrt(dC.QC.Spike(:,V1).^2+dC.QC.Blank(:,dsearchn(Bloc,Vloc(V1))).^2)./(C.QC.Spike(:,V1) - C.QC.Blank(:,dsearchn(Bloc,Vloc(V1)))).^2;
+    dC.SC.Blank(:,1) = abs(C.SC.Blank(:,1)) .* sqrt((dC.QC.Blank(:,1)./C.QC.Blank(:,1)).^2 + (df_SC./f_SC).^2);
 end
 
 %% 5) RE correction due to oxide formation (OC)
-C_OC = C_SC;
-dC_OC = dC_SC;
+C.OC = C.SC;
+dC.OC = dC.SC;
 
 if TEpar.CCheck.OC == true
     % Find array row of Re185, Re187, Tm169 and Yb171 concentrations
@@ -191,45 +191,47 @@ if TEpar.CCheck.OC == true
     end
     
     % Samples
-    C_OC.Sample(Re185,:) = C_SC.Sample(Re185,:) - C_SC.Sample(Tm169,:) * 0.003;
-    C_OC.Sample(Re187,:) = C_SC.Sample(Re187,:) - C_SC.Sample(Yb171,:) * 0.0001;
-    dC_OC.Sample(Re185,:) = sqrt(dC_SC.Sample(Re185,:).^2 + (dC_SC.Sample(Tm169,:) * 0.003).^2);
-    dC_OC.Sample(Re187,:) = sqrt(dC_SC.Sample(Re187,:).^2 + (dC_SC.Sample(Yb171,:) * 0.0001).^2);
+    C.OC.Sample(Re185,:) = C.SC.Sample(Re185,:) - C.SC.Sample(Tm169,:) * 0.003;
+    C.OC.Sample(Re187,:) = C.SC.Sample(Re187,:) - C.SC.Sample(Yb171,:) * 0.0001;
+    dC.OC.Sample(Re185,:) = sqrt(dC.SC.Sample(Re185,:).^2 + (dC.SC.Sample(Tm169,:) * 0.003).^2);
+    dC.OC.Sample(Re187,:) = sqrt(dC.SC.Sample(Re187,:).^2 + (dC.SC.Sample(Yb171,:) * 0.0001).^2);
     
     % Procedural blank
-    C_OC.Blank(Re185,:) = C_SC.Blank(Re185,:) - C_SC.Blank(Tm169,:) * 0.003;
-    C_OC.Blank(Re187,:) = C_SC.Blank(Re187,:) - C_SC.Blank(Yb171,:) * 0.0001;
-    dC_OC.Blank(Re185,:) = sqrt(dC_SC.Blank(Re185,:).^2 + (dC_SC.Blank(Tm169,:) * 0.003).^2);
-    dC_OC.Blank(Re187,:) = sqrt(dC_SC.Blank(Re187,:).^2 + (dC_SC.Blank(Yb171,:) * 0.0001).^2);
+    C.OC.Blank(Re185,:) = C.SC.Blank(Re185,:) - C.SC.Blank(Tm169,:) * 0.003;
+    C.OC.Blank(Re187,:) = C.SC.Blank(Re187,:) - C.SC.Blank(Yb171,:) * 0.0001;
+    dC.OC.Blank(Re185,:) = sqrt(dC.SC.Blank(Re185,:).^2 + (dC.SC.Blank(Tm169,:) * 0.003).^2);
+    dC.OC.Blank(Re187,:) = sqrt(dC.SC.Blank(Re187,:).^2 + (dC.SC.Blank(Yb171,:) * 0.0001).^2);
 end
 
 %% 6) Procedural blank correction (BC)
-C_BC = C_OC;
-dC_BC = dC_OC;
+C.BC = C.OC;
+dC.BC = dC.OC;
 
 if TEpar.CCheck.BC == true
     % Samples
     for iS = 1 : length(Sloc)
-        C_BC.Sample(:,iS) = C_OC.Sample(:,iS) - C_OC.Blank;
-        dC_BC.Sample(:,iS) = sqrt(dC_OC.Sample(:,iS).^2 + dC_OC.Blank.^2);
+        C.BC.Sample(:,iS) = C.OC.Sample(:,iS) - C.OC.Blank;
+        dC.BC.Sample(:,iS) = sqrt(dC.OC.Sample(:,iS).^2 + dC.OC.Blank.^2);
     end
 end
 
 %% 7) Dilution correction (DC)
-C_DC = C_BC;
-dC_DC = dC_BC;
+C.DC = C.BC;
+dC.DC = dC.BC;
 ICPdilution = 5;
 WtPar.m_unc = 1;
 
 if TEpar.CCheck.DC == true
-    f_DC = (ICPdilution .* WtPar.m_4ml .* (WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)) ./ (WtPar.m_sed .* WtPar.m_400ul);
-    C_DC.Sample = f_DC .* C_BC.Sample;
+    C.DC.f_DC = (ICPdilution .* WtPar.m_4ml .* (WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)) ./ (WtPar.m_sed .* WtPar.m_400ul);
+    C.DC.Sample = C.DC.f_DC .* C.BC.Sample;
     
-    df_DC = abs(f_DC) .* sqrt((WtPar.m_unc./WtPar.m_4ml).^2 + (sqrt(3*WtPar.m_unc^2)./(WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)).^2 + (WtPar.m_unc./WtPar.m_sed.^3).^2 + (WtPar.m_unc./WtPar.m_400ul.^3).^2);
-    dC_DC.Sample = abs(C_DC.Sample) .* sqrt((df_DC./f_DC).^2 + (dC_BC.Sample./C_BC.Sample).^2);
+    dC.DC.f_DC = abs(C.DC.f_DC) .* sqrt((WtPar.m_unc./WtPar.m_4ml).^2 + (sqrt(3*WtPar.m_unc^2)./(WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)).^2 + (WtPar.m_unc./WtPar.m_sed.^3).^2 + (WtPar.m_unc./WtPar.m_400ul.^3).^2);
+    dC.DC.Sample = abs(C.DC.Sample) .* sqrt((dC.DC.f_DC./C.DC.f_DC).^2 + (dC.BC.Sample./C.BC.Sample).^2);
 end
 
 %% Isotopic dilution
+C.ID = C.DC;
+dC.ID = dC.DC;
 % Parameters
 ThMassRatio = 232.0380553/230.0331338;  % Th232:Th233 mass ratio
 UMassRatio = 238.0565/236.04987;        % U238:U236 mass ratio
@@ -259,17 +261,20 @@ Th232InSediment = Th232InSample .* (WtPar.m_4ml./WtPar.m_400ul);
 U238InSediment = U238InSample .* (WtPar.m_4ml./WtPar.m_400ul);
 
 % Concentration of Th232 and U238 in sediment (ppm)
-C_DC.Sample(end+1,:) = (Th232InSediment ./ (WtPar.m_sed*1000)) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
-C_DC.Sample(end+1,:) = (U238InSediment ./ (WtPar.m_sed*1000)) .* ((URY - 1./URatioInSample) ./ (1 + URY));
-Isotopes{end+1} = 'Th232(ID)';
-Isotopes{end+1} = 'U238(ID)';
-
+if ThRY > 0
+    C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000)) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
+else
+    C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000));
+end
+if URY > 0
+    C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000)) .* ((URY - 1./URatioInSample) ./ (1 + URY));
+else
+    C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000));
+end
+IsotopesID = Isotopes;
+IsotopesID{strcmp(Isotopes,'Th232(LR)')} = 'Th232(ID)';
+IsotopesID{strcmp(Isotopes,'U238(LR)')} = 'U238(ID)';
 
 %% Result
-C = array2table(C_DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes);
-dC = array2table(dC_DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes(1:end-2));
-
-%%
-figure(4)
-plot(C{18,2:end},C{end-1,2:end},'o')
-axis square
+% C = array2table(C.DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes);
+% dC = array2table(dC.DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes(1:end-2));
