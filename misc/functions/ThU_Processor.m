@@ -108,13 +108,14 @@ else
         mkdir([ThUpar.ThURawPath,'output'])
     end
     
-    [~,SeqCheck] = listdlg('PromptString','Confirm sequence',...
-        'SelectionMode','single',...
-        'ListString',Sequence);
+%     [~,SeqCheck] = listdlg('PromptString','Confirm sequence',...
+%         'SelectionMode','single',...
+%         'ListString',Sequence);
+SeqCheck = 1;
     
     %% PROCESSING
     if SeqCheck == 1
-        TabSeq = table(Sequence,'VariableNames',{'SEQUENCE'});
+%         TabSeq = table(Sequence,'VariableNames',{'SEQUENCE'});
 %         writetable(TabSeq,[ThUpar.ThURawPath,'output/Sequence.txt'],'Delimiter',' ')
 
         %% STEP 1: TAILING & BLANK CORRECTION
@@ -295,62 +296,8 @@ else
         
         ThU.NatU.R235_234_cMB = ThU.NatU.R235_234*(235.044/234.0409468)^f;
         dThU.NatU.R235_234_cMB = abs(ThU.NatU.R235_234_cMB.*sqrt(((dThU.NatU.R235_234)./(ThU.NatU.R235_234)).^2+(log(235.044/234.0409468).*df).^2));    
-        
-        %% GENERATE OUTPUT TABLE A: Ratios
-%         ThU.Sample.R229_230 = ThU.Sample.R229_230_cMB(:);
-%         ThU.Sample.R229_230(isnan(ThU.Sample.R229_230_cMB(:))) = [];
-%         ThU.Sample.R229_230(isinf(ThU.Sample.R229_230)) = NaN;
-%         dThU.Sample.R229_230 = dThU.Sample.R229_230_cMB(:);
-%         dThU.Sample.R229_230(isnan(ThU.Sample.R229_230_cMB(:))) = [];
-%         ThU.Sample.R236_234 = ThU.Sample.R236_234_cMB(:);
-%         ThU.Sample.R236_234(isnan(ThU.Sample.R236_234_cMB(:))) = [];
-%         ThU.Sample.R236_234(isinf(ThU.Sample.R229_230)) = NaN;
-%         dThU.Sample.R236_234 = dThU.Sample.R236_234_cMB(:);
-%         dThU.Sample.R236_234(isnan(ThU.Sample.R236_234_cMB(:))) = [];
-%         ResTab1 = table(NameList.samples,...
-%             ThU.Sample.R229_230,dThU.Sample.R229_230,dThU.Sample.R229_230./ThU.Sample.R229_230*100,...
-%             ThU.Sample.R236_234,dThU.Sample.R236_234,dThU.Sample.R236_234./ThU.Sample.R236_234*100);
-%         ResTab1.Properties.VariableNames = {'SampleID',...
-%             'ThU.Sample.R229_230','sigma_ThU.Sample.R229_230','sigmaP_ThU.Sample.R229_230'...
-%             'ThU.Sample.R236_234' 'sigma_ThU.Sample.R236_234','sigmaP_ThU.Sample.R236_234'};
-%         
-%         ThU.NatU.R235_234 = ThU.NatU.R235_234_cMB(:);
-%         dThU.NatU.R235_234 = dThU.NatU.R235_234_cMB(:);
-%         ResTab2 = table(NameList.ICPnatU,...
-%             ThU.NatU.R235_234,dThU.NatU.R235_234,dThU.NatU.R235_234./ThU.NatU.R235_234*100);
-%         ResTab2.Properties.VariableNames = {'NatUID',...
-%             'ThU.Sample.R229_230','sigma_ThU.Sample.R229_230','sigmaP_ThU.NatU.R235_234'};
     
     end
-end
-
-if ThUpar.IDsel == 1
-    %% ISOTOPIC DILUTION & PARTICLE FLUX
-    run IDFVInput(SampleSeq,ResTab1,ResTab2,par)
-else
-    %% SAVE AND DISPLAY TABLE A
-%     writetable(ResTab1, [ThUpar.ThURawPath,'output/SampleRatios.xlsx'])
-%     writetable(ResTab2, [ThUpar.ThURawPath,'output/NatURatios.xlsx'])
-%     
-%     TableFig = figure;
-%     TableFig.Position = [100 100 640 652];
-%     TableFig.ToolBar = 'none';
-%     TableFig.MenuBar = 'none';
-%     TableFig.NumberTitle = 'off';
-%     TableFig.Name = 'Results';
-%     
-%     ColumnNames1 = {'229Th/230Th',char(963),[char(963), ' [%]'],...
-%         '236U/234U',char(963),[char(963), ' [%]']};
-%     ResTabUI1 = uitable(TableFig,'Data',ResTab1{:,2:end});
-%     ResTabUI1.ColumnName = ColumnNames1';
-%     ResTabUI1.RowName = ResTab1{:,1};
-%     ResTabUI1.Position = [10 212 620 430];
-%     
-%     ColumnNames2 = {'U235/U234',char(963),[char(963), ' [%]']};
-%     ResTabUI2 = uitable(TableFig,'Data',ResTab2{:,2:end});
-%     ResTabUI2.ColumnName = ColumnNames2';
-%     ResTabUI2.RowName = ResTab2{:,1};
-%     ResTabUI2.Position = [10 10 360 192];
 end
 
 end
