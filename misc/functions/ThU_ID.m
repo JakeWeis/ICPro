@@ -1,14 +1,15 @@
 function [IDC,dIDC] = ThU_ID(SpikePar,WtPar,ThU,dThU)
 
 %% Isotopic Dilution
+dscale = 0.0001;
+
 ThMassRatio = 229.031754/230.033126;
 IDC.Th230 = 1/ThMassRatio .* SpikePar.Th229CY .* ...
     (WtPar.m_ThBC./WtPar.m_sed) .* ...
     ((SpikePar.Th229RY - ThU.Sample.R229_230(2:end))./(ThU.Sample.R229_230(2:end) - SpikePar.Th229RX)) .* ...
     1/(SpikePar.Th229RY + 1) .*...
     10^-6;
-% lambda230 = 9.15771E-06;
-% Th230Acti = Th230Conc * lambda230;
+dIDC.Th230 = IDC.Th230 .* sqrt((dscale./WtPar.m_ThBC).^2 + (dscale./WtPar.m_sed).^2 + (dThU.Sample.R229_230_cMB(2:end)./ThU.Sample.R229_230_cMB(2:end)).^2*2);
 
 UMassRatio = 236.045568/234.0409468;
 IDC.U234 = 1/UMassRatio .* SpikePar.U236CY .* ...
@@ -16,16 +17,9 @@ IDC.U234 = 1/UMassRatio .* SpikePar.U236CY .* ...
     ((SpikePar.U236RY - ThU.Sample.R236_234(2:end))./(ThU.Sample.R236_234(2:end) - SpikePar.U236RX)) .* ...
     1/(SpikePar.U236RY + 1) .* ...
     10^-6;
-% lambda234 = 2.82629E-06;
-% U230Acti = Th230Conc * lambda234;
+dIDC.U234 = IDC.U234 .* sqrt((dscale./WtPar.m_UBC).^2 + (dscale./WtPar.m_sed).^2 + (dThU.Sample.R236_234_cMB(2:end)./ThU.Sample.R236_234_cMB(2:end)).^2*2);
 
-
-% dScale = 0.0001;
-dIDC.Th230 = NaN;
-dIDC.U234 = NaN;
-% dIDC.Th230Acti = NaN;
-% dIDC.U234Acti = NaN;
-
+%% FV Calculations
 % %% Conversion ppm --> dpm
 % Th230dpm = Th230Conc * 45781.96174;
 % Th232dpm = IDinput.Th232Conc * 0.244438092;
@@ -61,48 +55,5 @@ dIDC.U234 = NaN;
 % FV = betaTh230 .* IDinput.Depth ./ xsTh230;
 % 
 % s_FV = NaN;
-% 
-% %% GENERATE, SAVE & DISPLAY OUTPUT TABLE B:
-% ResTab1{:,end+1} = Th230Conc;
-% ResTab1{:,end+1} = s_Th230Conc;
-% ResTab1{:,end+1} = s_Th230Conc./Th230Conc;
-% ResTab1{:,end+1} = U234Conc;
-% ResTab1{:,end+1} = s_U234Conc;
-% ResTab1{:,end+1} = s_U234Conc ./ U234Conc;
-% ResTab1{:,end+1} = FV;
-% ResTab1{:,end+1} = s_FV;
-% ResTab1{:,end+1} = s_FV ./ FV;
-% ResTab1.Properties.VariableNames = {'SampleID',...
-%     'Th229_230','sigma_Th229_230','sigmaP_Th229_230'...
-%     'U236_234','sigma_U236_234','sigmaP_U236_234',...
-%     'Th230Conc','sigma_Th230Conc','sigmaP_Th230Conc',...
-%     'U234Conc','sigma_U234Conc','sigmaP_U234Conc',...
-%     'FV','sigma_FV','sigmaP_FV'};
-% 
-% writetable(ResTab1, [par.RawDataDir,'output/SampleRatios.xlsx'])
-% writetable(ResTab2, [par.RawDataDir,'output/NatURatios.xlsx'])
-% 
-% TableFig = figure;
-% TableFig.Position = [100 100 740 667];
-% TableFig.ToolBar = 'none';
-% TableFig.MenuBar = 'none';
-% TableFig.NumberTitle = 'off';
-% TableFig.Name = 'Results';
-% 
-% ColumnNames1 = {'229Th/230Th',char(963),[char(963), ' [%]'],...
-%     '236U/234U',char(963),[char(963), ' [%]'],...
-%     '230Th conc. [ppm]',char(963),[char(963), ' [%]'],...
-%     '234U conc. [ppm]',char(963),[char(963), ' [%]'],...
-%     'Particle flux [g m-2 a-1]',char(963),[char(963), ' [%]']};
-% ResTabUI1 = uitable(TableFig,'Data',ResTab1{:,2:end});
-% ResTabUI1.ColumnName = ColumnNames1';
-% ResTabUI1.RowName = ResTab1{:,1};
-% ResTabUI1.Position = [10 212 720 445];
-% 
-% ColumnNames2 = {'U235/U234',char(963),[char(963), ' [%]']};
-% ResTabUI2 = uitable(TableFig,'Data',ResTab2{:,2:end});
-% ResTabUI2.ColumnName = ColumnNames2';
-% ResTabUI2.RowName = ResTab2{:,1};
-% ResTabUI2.Position = [10 10 360 192];
 
 end

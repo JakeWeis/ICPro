@@ -1,4 +1,4 @@
-function [ThU,dThU,SampleSeq,NatUSeq] = ThU_Processor(ThUpar)
+function [ThU,dThU,SampleSeq,NatUSeq,Sequence] = ThU_Processor(ThUpar)
 
 if ThUpar.ThURawPath(end) ~= '/'
     ThUpar.ThURawPath(end+1) = '/';
@@ -115,8 +115,6 @@ SeqCheck = 1;
     
     %% PROCESSING
     if SeqCheck == 1
-%         TabSeq = table(Sequence,'VariableNames',{'SEQUENCE'});
-%         writetable(TabSeq,[ThUpar.ThURawPath,'output/Sequence.txt'],'Delimiter',' ')
 
         %% STEP 1: TAILING & BLANK CORRECTION
         
