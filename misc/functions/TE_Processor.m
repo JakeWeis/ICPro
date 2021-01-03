@@ -211,6 +211,7 @@ if TEpar.CCheck.BC == true
         C.BC.Sample(:,iS) = C.OC.Sample(:,iS) - C.OC.Blank;
         dC.BC.Sample(:,iS) = sqrt(dC.OC.Sample(:,iS).^2 + dC.OC.Blank.^2);
     end
+    C.BC.Sample(C.BC.Sample < 0) = 0;
 end
 
 %% 7) Dilution correction (DC)
@@ -227,7 +228,7 @@ if TEpar.CCheck.DC == true
     dC.DC.Sample = abs(C.DC.Sample) .* sqrt((dC.DC.f_DC./C.DC.f_DC).^2 + (dC.BC.Sample./C.BC.Sample).^2);
 end
 
-%% Isotopic dilution
+%% 8) Isotopic dilution (ID)
 C.ID = C.DC;
 dC.ID = dC.DC;
 % Parameters
@@ -263,14 +264,14 @@ dTh232InSediment = sqrt((Th232InSample.^2 .* ((WtPar.m_4ml/1000).^2 .* (WtPar.m_
 dU238InSediment = sqrt((U238InSample.^2 .* ((WtPar.m_4ml/1000).^2 .* (WtPar.m_unc/1000).^2 + (WtPar.m_400ul/1000).^2 .* (WtPar.m_unc/1000).^2) + dU238InSample.^2 .* (WtPar.m_4ml/1000).^2 .* (WtPar.m_400ul/1000).^2)./((WtPar.m_400ul/1000).^4));
 
 % Concentration of Th232 and U238 in sediment (ppm)
-if ThRY > 0
+if ~isinf(ThRY)
     C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000)) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
     dC.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = sqrt((Th232InSediment.^2.*(WtPar.m_unc*1000).^2 + dTh232InSediment.^2.*(WtPar.m_sed*1000).^2)./Th232InSediment.^4) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
 else
     C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000));
     dC.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = sqrt((Th232InSediment.^2.*(WtPar.m_unc*1000).^2 + dTh232InSediment.^2.*(WtPar.m_sed*1000).^2)./Th232InSediment.^4);
 end
-if URY > 0
+if ~isinf(URY)
     C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000)) .* ((URY - 1./URatioInSample) ./ (1 + URY));
     dC.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = sqrt((U238InSediment.^2.*(WtPar.m_unc*1000).^2 + dU238InSediment.^2.*(WtPar.m_sed*1000).^2)./U238InSediment.^4) .* ((URY - 1./URatioInSample) ./ (1 + URY));
 else
@@ -281,6 +282,3 @@ IsotopesID = Isotopes;
 IsotopesID{strcmp(Isotopes,'Th232(LR)')} = 'Th232(ID)';
 IsotopesID{strcmp(Isotopes,'U238(LR)')} = 'U238(ID)';
 
-%% Result
-% C = array2table(C.DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes);
-% dC = array2table(dC.DC.Sample,'VariableNames',RunID.Sample,'RowNames',Isotopes(1:end-2));
