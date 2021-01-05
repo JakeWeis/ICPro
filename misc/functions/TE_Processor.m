@@ -232,8 +232,8 @@ end
 C.ID = C.DC;
 dC.ID = dC.DC;
 % Parameters
-ThMassRatio = 232.0380553/230.0331338;  % Th232:Th233 mass ratio
-UMassRatio = 238.0565/236.04987;        % U238:U236 mass ratio
+ThMassRatio = 230.0331338/232.0380553;  % Th232:Th233 mass ratio
+UMassRatio = 236.04987/238.0565;        % U238:U236 mass ratio
 ThRY = SpikePar.Th230RY;
 % ThRX = SpikePar.Th230RX;
 ThCY = SpikePar.Th230CY;
@@ -245,39 +245,41 @@ UCY = SpikePar.U236CY;
 Th230InSample = ThCY .* WtPar.m_ThSC/1000;
 U236InSample = UCY .* WtPar.m_USC/1000 + UCY .* WtPar.m_UBC/1000 .* WtPar.m_400ul./WtPar.m_4ml;
 dTh230InSample = ThCY .* WtPar.m_unc/1000;
-dU236InSample = sqrt((UCY .* WtPar.m_unc/1000)^2 + (UCY .* WtPar.m_UBC/1000 .* WtPar.m_400ul./WtPar.m_4ml .* sqrt(UCY .* WtPar.m_unc/1000 .* WtPar.m_unc./WtPar.m_unc)));
+dU236InSample = sqrt((UCY .* WtPar.m_unc/1000)^2 +...
+    (UCY .* WtPar.m_UBC/1000 .* WtPar.m_400ul./WtPar.m_4ml .* sqrt((WtPar.m_unc./WtPar.m_UBC).^2 + (WtPar.m_unc./WtPar.m_400ul).^2 + (WtPar.m_unc./WtPar.m_4ml).^2)).^2);
 
-% Raw count ratios Th232:Th230 & U238:U236
-ThRatioInSample = cps.Sample(2,:) ./ cps.Sample(1,:);
-URatioInSample = cps.Sample(4,:) ./ cps.Sample(3,:);
+% Raw count ratios Th230:Th232 & U236:U238
+ThRatioInSample = cps.Sample(1,:) ./ cps.Sample(2,:);
+URatioInSample = cps.Sample(3,:) ./ cps.Sample(4,:);
 
 % Mass of Th232 and U238 in sample, derived from raw count ratio and the amount of spiked isotope (pg)
-Th232InSample = ThRatioInSample .* Th230InSample .* ThMassRatio;
-U238InSample = URatioInSample .* U236InSample .* UMassRatio;
-dTh232InSample = ThRatioInSample .* dTh230InSample .* ThMassRatio;
-dU238InSample = URatioInSample .* dU236InSample .* UMassRatio;
+Th232InSample = Th230InSample ./ ThRatioInSample .* ThMassRatio;
+U238InSample = U236InSample ./ URatioInSample .* UMassRatio;
+dTh232InSample = dTh230InSample ./ ThRatioInSample .* ThMassRatio;
+dU238InSample = dU236InSample ./ URatioInSample .* UMassRatio;
 
 % Mass of Th232 and U238 in sediment (pg)
 Th232InSediment = Th232InSample .* (WtPar.m_4ml./WtPar.m_400ul);
 U238InSediment = U238InSample .* (WtPar.m_4ml./WtPar.m_400ul);
-dTh232InSediment = sqrt((Th232InSample.^2 .* ((WtPar.m_4ml/1000).^2 .* (WtPar.m_unc/1000).^2 + (WtPar.m_400ul/1000).^2 .* (WtPar.m_unc/1000).^2) + dTh232InSample.^2 .* (WtPar.m_4ml/1000).^2 .* (WtPar.m_400ul/1000).^2)./((WtPar.m_400ul/1000).^4));
-dU238InSediment = sqrt((U238InSample.^2 .* ((WtPar.m_4ml/1000).^2 .* (WtPar.m_unc/1000).^2 + (WtPar.m_400ul/1000).^2 .* (WtPar.m_unc/1000).^2) + dU238InSample.^2 .* (WtPar.m_4ml/1000).^2 .* (WtPar.m_400ul/1000).^2)./((WtPar.m_400ul/1000).^4));
+dTh232InSediment = Th232InSample .* (WtPar.m_4ml./WtPar.m_400ul) .* sqrt((dTh232InSample./Th232InSample).^2 + (WtPar.m_unc./WtPar.m_4ml).^2 + (WtPar.m_unc./WtPar.m_400ul).^2);
+dU238InSediment = U238InSample .* (WtPar.m_4ml./WtPar.m_400ul) .* sqrt((dU238InSample./U238InSample).^2 + (WtPar.m_unc./WtPar.m_4ml).^2 + (WtPar.m_unc./WtPar.m_400ul).^2);
 
 % Concentration of Th232 and U238 in sediment (ppm)
 if ~isinf(ThRY)
-    C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000)) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
+    C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000)) .* ((ThRY - ThRatioInSample) ./ (1 + ThRY));
     dC.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = sqrt((Th232InSediment.^2.*(WtPar.m_unc*1000).^2 + dTh232InSediment.^2.*(WtPar.m_sed*1000).^2)./Th232InSediment.^4) .* ((ThRY - 1./ThRatioInSample) ./ (1 + ThRY));
 else
     C.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = (Th232InSediment ./ (WtPar.m_sed*1000));
     dC.ID.Sample(find(strcmp(Isotopes,'Th232(LR)')),:) = sqrt((Th232InSediment.^2.*(WtPar.m_unc*1000).^2 + dTh232InSediment.^2.*(WtPar.m_sed*1000).^2)./Th232InSediment.^4);
 end
 if ~isinf(URY)
-    C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000)) .* ((URY - 1./URatioInSample) ./ (1 + URY));
+    C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000)) .* ((URY - URatioInSample) ./ (1 + URY));
     dC.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = sqrt((U238InSediment.^2.*(WtPar.m_unc*1000).^2 + dU238InSediment.^2.*(WtPar.m_sed*1000).^2)./U238InSediment.^4) .* ((URY - 1./URatioInSample) ./ (1 + URY));
 else
     C.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = (U238InSediment ./ (WtPar.m_sed*1000));
     dC.ID.Sample(find(strcmp(Isotopes,'U238(LR)')),:) = sqrt((U238InSediment.^2.*(WtPar.m_unc*1000).^2 + dU238InSediment.^2.*(WtPar.m_sed*1000).^2)./U238InSediment.^4);
 end
+
 IsotopesID = Isotopes;
 IsotopesID{strcmp(Isotopes,'Th232(LR)')} = 'Th232(ID)';
 IsotopesID{strcmp(Isotopes,'U238(LR)')} = 'U238(ID)';

@@ -32,20 +32,25 @@ end
 ThUMatchUp = cell(numel(OUT.TE.RunID.Sample),1);ThUMatchUp(IDC.TEMatchUpInd) = ThUSamples';
 IDC.SampleMatchUp = cell2table([OUT.TE.RunID.Sample,ThUMatchUp],'VariableNames',{'TE Samples','ThU Samples'});
 
-ThMassRatio = 229.031754/230.033126;
-IDC.Th230 = 1/ThMassRatio .* SpikePar.Th229CY .* ...
-    (WtPar.m_ThBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* ...
-    ((SpikePar.Th229RY - OUT.ThU.Ratios.Sample.R229_230(ThUSampleInd))./(OUT.ThU.Ratios.Sample.R229_230(ThUSampleInd) - SpikePar.Th229RX)) .* ...
-    1/(SpikePar.Th229RY + 1) * 10^-6;
-dIDC.Th230 = IDC.Th230 .* sqrt((dscale./WtPar.m_ThBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R229_230_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R229_230_cMB(ThUSampleInd)).^2*2);
+ThMassRatio = 230.033126/229.031754;
+if ~isinf(SpikePar.Th229RY)
+    IDC.Th230 = ThMassRatio .* SpikePar.Th229CY .* (WtPar.m_ThBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* ...
+        (SpikePar.Th229RY - OUT.ThU.Ratios.Sample.R229_230(ThUSampleInd))./(OUT.ThU.Ratios.Sample.R229_230(ThUSampleInd) .* (SpikePar.Th229RY + 1));
+    dIDC.Th230 = IDC.Th230 .* sqrt((dscale./WtPar.m_ThBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R229_230_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R229_230_cMB(ThUSampleInd)).^2*2);
+else
+    IDC.Th230 = ThMassRatio .* SpikePar.Th229CY .* (WtPar.m_ThBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* 1./OUT.ThU.Ratios.Sample.R229_230(ThUSampleInd);
+    dIDC.Th230 = IDC.Th230 .* sqrt((dscale./WtPar.m_ThBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R229_230_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R229_230_cMB(ThUSampleInd)).^2);
+end
 
-UMassRatio = 236.045568/234.0409468;
-IDC.U234 = 1/UMassRatio .* SpikePar.U236CY .* ...
-    (WtPar.m_UBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* ...
-    ((SpikePar.U236RYb - OUT.ThU.Ratios.Sample.R236_234(ThUSampleInd))./(OUT.ThU.Ratios.Sample.R236_234(ThUSampleInd) - SpikePar.U236RX)) .* ...
-    1/(SpikePar.U236RYb + 1) .* ...
-    10^-6;
-dIDC.U234 = IDC.U234 .* sqrt((dscale./WtPar.m_UBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R236_234_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R236_234_cMB(ThUSampleInd)).^2*2);
+UMassRatio = 234.0409468/236.045568;
+if ~isinf(SpikePar.Th229RY)
+    IDC.U234 = UMassRatio .* SpikePar.U236CY .* (WtPar.m_UBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* ...
+        (SpikePar.U236RYb - OUT.ThU.Ratios.Sample.R236_234(ThUSampleInd))./(OUT.ThU.Ratios.Sample.R236_234(ThUSampleInd) .* (SpikePar.U236RYb + 1));
+    dIDC.U234 = IDC.U234 .* sqrt((dscale./WtPar.m_UBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R236_234_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R236_234_cMB(ThUSampleInd)).^2*2);
+else
+    IDC.U234 = UMassRatio .* SpikePar.U236CY .* (WtPar.m_UBC(IDC.TEMatchUpInd)./WtPar.m_sed(IDC.TEMatchUpInd)) .* 1./OUT.ThU.Ratios.Sample.R236_234(ThUSampleInd);
+    dIDC.U234 = IDC.U234 .* sqrt((dscale./WtPar.m_UBC(IDC.TEMatchUpInd)).^2 + (dscale./WtPar.m_sed(IDC.TEMatchUpInd)).^2 + (OUT.ThU.dRatios.Sample.R236_234_cMB(ThUSampleInd)./OUT.ThU.Ratios.Sample.R236_234_cMB(ThUSampleInd)).^2);
+end
 
 %% FV Calculations
 % %% Conversion ppm --> dpm
