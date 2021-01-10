@@ -1,27 +1,5 @@
-function [C,dC,Isotopes,RunID] = TE_ReadRaw(TEpar,mode)
+function OUT = TE_ReadRaw(TEpar,mode)
 % Extract ICP data from raw data spread sheet
-
-%% ID strings
-% clear
-% if ~contains(TEpar.RawPath,'rawfile2')
-%     % Example 1
-%     TEpar.RawPath = '/Users/jweis/Documents/Study/3 - MSC/RP - Guided Research (IMAS)/1 - Data/1 ICP-MS/BATCH 3/TM_B3_superraw.xlsx';
-%     TEpar.SID = 'JW';
-%     TEpar.BID = 'Blk24';
-%     TEpar.RawPath = '/Users/jweis/Documents/Study/5 - PHD/5 - Misc/RA/rawfile.xlsx';
-%     TEpar.SID = 'GC';
-%     TEpar.BID = 'Blk1';
-%     TEpar.VID = 'spike';
-%     TEpar.RID = 'Rinse';
-%     TEpar.QID = 'QC';
-% else
-%     % Example 2
-%     TEpar.SID = 'AD';
-%     TEpar.BID = 'ADB';
-%     TEpar.VID = 'spike';
-%     TEpar.RID = 'Rinse';
-%     TEpar.QID = 'QC';
-% end
 
 %% Extract list of measurement run IDs
 RunHeader = table2cell(readtable(TEpar.RawPath,'Range','1:1','ReadVariableNames',0))';
@@ -123,5 +101,11 @@ else
     C.Raw = NaN;
     dC.Raw = NaN;
 end
+
+%% Output variable
+OUT.C = C;
+OUT.dC = dC;
+OUT.Isotopes = Isotopes;
+OUT.RunID = RunID;
 
 end

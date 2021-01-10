@@ -1,4 +1,4 @@
-function [C,dC,IsotopesID] = TE_Processor(TEpar,C,dC,Isotopes,RunID,WtPar,SpikePar,cps)
+function OUT = TE_Processor(TEpar,C,dC,Isotopes,RunID,WtPar,SpikePar,cps)
 
 %% 1) Concentrations and errors (in ppm), read from raw file
 
@@ -283,4 +283,11 @@ end
 IsotopesID = Isotopes;
 IsotopesID{strcmp(Isotopes,'Th232(LR)')} = 'Th232(ID)';
 IsotopesID{strcmp(Isotopes,'U238(LR)')} = 'U238(ID)';
+
+%% Output variable
+OUT.C = C;
+OUT.dC = dC;
+OUT.Isotopes = Isotopes;
+OUT.IsotopesID = IsotopesID;
+OUT.RunID = RunID;
 
