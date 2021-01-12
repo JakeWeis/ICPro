@@ -1,8 +1,13 @@
 function OUT = ThU_Processor(ThUpar,SpikePar,WtPar,SMatch,compute)
-if ThUpar.ThURawPath(end) ~= '/'
-    ThUpar.ThURawPath(end+1) = '/';
+if ThUpar.ThURawPath(end) ~= filesep
+    ThUpar.ThURawPath(end+1) = filesep;
 end
 FileList = dir([ThUpar.ThURawPath,'*.txt']);
+for iF = 1 : numel(FileList)
+    hiddenF(iF) = contains(FileList(iF).name,'._');
+end
+FileList(hiddenF) = [];
+
 NameList.tot = {FileList.name}';
 NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
 NameList.ICPblanks = NameList.tot(contains(NameList.tot,ThUpar.BID));
@@ -107,7 +112,7 @@ else
     for iB = 1 : length(Sequence)
         Sequence{iB} = Sequence{iB}(1:end-4);
     end
-    if ~(exist([ThUpar.ThURawPath,'output/'],'dir'))
+    if ~(exist([ThUpar.ThURawPath,'output',filesep],'dir'))
         mkdir([ThUpar.ThURawPath,'output'])
     end
     
