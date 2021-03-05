@@ -222,10 +222,10 @@ WtPar.m_unc = 1;
 
 if TEpar.CCheck.DC == true
     C.DC.f_DC = (ICPdilution .* WtPar.m_4ml .* (WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)) ./ (WtPar.m_sed .* WtPar.m_400ul);
-    C.DC.Sample = C.DC.f_DC .* C.BC.Sample;
+    C.DC.Sample = C.DC.f_DC .* [C.BC.Blank,C.BC.Sample];
     
     dC.DC.f_DC = abs(C.DC.f_DC) .* sqrt((WtPar.m_unc./WtPar.m_4ml).^2 + (sqrt(3*WtPar.m_unc^2)./(WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)).^2 + (WtPar.m_unc./WtPar.m_sed.^3).^2 + (WtPar.m_unc./WtPar.m_400ul.^3).^2);
-    dC.DC.Sample = abs(C.DC.Sample) .* sqrt((dC.DC.f_DC./C.DC.f_DC).^2 + (dC.BC.Sample./C.BC.Sample).^2);
+    dC.DC.Sample = abs(C.DC.Sample) .* sqrt((dC.DC.f_DC./C.DC.f_DC).^2 + ([dC.BC.Blank,dC.BC.Sample]./[C.BC.Blank,C.BC.Sample]).^2);
 end
 
 %% 8) Isotopic dilution (ID)
@@ -283,6 +283,17 @@ end
 IsotopesID = Isotopes;
 IsotopesID{strcmp(Isotopes,'Th232(LR)')} = 'Th232(ID)';
 IsotopesID{strcmp(Isotopes,'U238(LR)')} = 'U238(ID)';
+
+%% Remove Blank from DC & ID
+C.DC.Sample(:,1) = [];
+C.DC.f_DC(:,1) = [];
+C.ID.Sample(:,1) = [];
+C.ID.f_DC(:,1) = [];
+
+dC.DC.Sample(:,1) = [];
+dC.DC.f_DC(:,1) = [];
+dC.ID.Sample(:,1) = [];
+dC.ID.f_DC(:,1) = [];
 
 %% Output variable
 OUT.C = C;

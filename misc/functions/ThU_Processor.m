@@ -1,4 +1,4 @@
-function OUT = ThU_Processor(ThUpar,SpikePar,WtPar,SMatch,compute)
+function OUT = ThU_Processor(ThUpar,SpikePar,WtPar,compute)
 if ThUpar.ThURawPath(end) ~= filesep
     ThUpar.ThURawPath(end+1) = filesep;
 end
@@ -9,12 +9,13 @@ end
 FileList(hiddenF) = [];
 
 NameList.tot = {FileList.name}';
-NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
+NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID) & ~contains(NameList.tot,ThUpar.pBID));
+NameList.procblank = NameList.tot(contains(NameList.tot,ThUpar.pBID));
 NameList.ICPblanks = NameList.tot(contains(NameList.tot,ThUpar.BID));
 NameList.ICPnatU = NameList.tot(contains(NameList.tot,ThUpar.NatUID));
 
 if length(ThUpar.NSamples) > 1 && length(ThUpar.NSamples) ~= ThUpar.NBlocks
-    warndlg('Number of samples per block needs to be a single value or one value per block (semicolon-separated).','Incorrect input')
+    warndlg('Number of samples per block needs to be a single value or one value per block.','Incorrect input')
     OUT = NaN;
 elseif isempty(NameList.samples)
     warndlg('Sample-ID character sequence not found.','Incorrect input')
@@ -40,20 +41,24 @@ else
     if length(ThUpar.NSamples) == 1
         SampleSeq = cell(ThUpar.NSamples,ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
-            SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(1+ThUpar.NSamples*(iB-1):1+ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
+            if iB == 1
+                SampleSeq(1:ThUpar.NSamples,iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples-1)];
+            else
+                SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1):ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
+            end
         end
     elseif length(ThUpar.NSamples) > 1
         SampleSeq = cell(max(ThUpar.NSamples),ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             if iB == 1
-                SampleSeq(1:ThUpar.NSamples(1),iB) = NameList.samples(1:ThUpar.NSamples(1));
+                SampleSeq(1:ThUpar.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples(1)-1)];
             else
-                SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1))+1:sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB));
+                SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1)):sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB)-1);
             end
         end
     end
     
-    if length(ThUpar.NSamples) == 1 && ThUpar.NSamples*ThUpar.NBlocks ~= numel(NameList.samples)
+    if length(ThUpar.NSamples) == 1 && ThUpar.NSamples*ThUpar.NBlocks ~= numel(NameList.samples)+1
         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
             ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
@@ -61,7 +66,7 @@ else
             '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
             '3,3,3,3,3,3,3,4).'])
         error('The processing has been terminated (see warning above).')
-    elseif length(ThUpar.NSamples) > 1 && sum(ThUpar.NSamples) ~= numel(NameList.samples)
+    elseif length(ThUpar.NSamples) > 1 && sum(ThUpar.NSamples) ~= numel(NameList.samples)+1
         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
             ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
@@ -297,27 +302,71 @@ else
         Ratios.NatU.R235_234_cMB = Ratios.NatU.R235_234*(235.044/234.0409468)^f;
         dRatios.NatU.R235_234_cMB = abs(Ratios.NatU.R235_234_cMB.*sqrt(((dRatios.NatU.R235_234)./(Ratios.NatU.R235_234)).^2+(log(235.044/234.0409468).*df).^2));
         
-        %% STEP 5: ISOTOPIC DILUTION
-        dscale = 0.0001;
-        ThMassRatio = 230.033126/229.031754;
-        if ~isinf(SpikePar.Th229RY)
-            ID.Th230 = ThMassRatio .* SpikePar.Th229CY .* (WtPar.m_ThBC(SMatch.TEind)./WtPar.m_sed(SMatch.TEind)) .* ...
-                (SpikePar.Th229RY - Ratios.Sample.R229_230(SMatch.ThUind))./(Ratios.Sample.R229_230(SMatch.ThUind) .* (SpikePar.Th229RY + 1));
-            dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC(SMatch.TEind)).^2 + (dscale./WtPar.m_sed(SMatch.TEind)).^2 + (dRatios.Sample.R229_230_cMB(SMatch.ThUind)./Ratios.Sample.R229_230_cMB(SMatch.ThUind)).^2*2);
-        else
-            ID.Th230 = ThMassRatio .* SpikePar.Th229CY .* (WtPar.m_ThBC(SMatch.TEind)./WtPar.m_sed(SMatch.TEind)) .* 1./Ratios.Sample.R229_230(SMatch.ThUind);
-            dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC(SMatch.TEind)).^2 + (dscale./WtPar.m_sed(SMatch.TEind)).^2 + (dRatios.Sample.R229_230_cMB(SMatch.ThUind)./Ratios.Sample.R229_230_cMB(SMatch.ThUind)).^2);
-        end
         
-        UMassRatio = 234.0409468/236.045568;
+        %% STEP 5: BLANK CORRECTION & ISOTOPIC DILUTION
+        dscale = 0.0001;
+        
+        % Thorium
+        M229 = 229.031754;
+        M230 = 230.033126;
         if ~isinf(SpikePar.Th229RY)
-            ID.U234 = UMassRatio .* SpikePar.U236CY .* (WtPar.m_UBC(SMatch.TEind)./WtPar.m_sed(SMatch.TEind)) .* ...
-                (SpikePar.U236RYb - Ratios.Sample.R236_234(SMatch.ThUind))./(Ratios.Sample.R236_234(SMatch.ThUind) .* (SpikePar.U236RYb + 1));
-            dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC(SMatch.TEind)).^2 + (dscale./WtPar.m_sed(SMatch.TEind)).^2 + (dRatios.Sample.R236_234_cMB(SMatch.ThUind)./Ratios.Sample.R236_234_cMB(SMatch.ThUind)).^2*2);
+            % Isotopic dilution (without blank correction)
+            ID.Th230 = (M230./M229) .* SpikePar.Th229CY .* (WtPar.m_ThBC./WtPar.m_sed)' .* (SpikePar.Th229RY - Ratios.Sample.R229_230(:))./(Ratios.Sample.R229_230(:) .* (SpikePar.Th229RY + 1));
+            ID.Th230(ID.Th230 == inf | ID.Th230 == -inf) = NaN;
+            dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2*2);
+            
+            % Moles Th230 in sediment/blank
+            Th230_n = (M230./M229)./M230 .* SpikePar.Th229CY .* (WtPar.m_ThBC)' .* (SpikePar.Th229RY - Ratios.Sample.R229_230(:))./(Ratios.Sample.R229_230(:) .* (SpikePar.Th229RY + 1)) * 10^-12;
+            Th230_n(Th230_n < 0) = 0;
+            dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2*2);
         else
-            ID.U234 = UMassRatio .* SpikePar.U236CY .* (WtPar.m_UBC(SMatch.TEind)./WtPar.m_sed(SMatch.TEind)) .* 1./Ratios.Sample.R236_234(SMatch.ThUind);
-            dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC(SMatch.TEind)).^2 + (dscale./WtPar.m_sed(SMatch.TEind)).^2 + (dRatios.Sample.R236_234_cMB(SMatch.ThUind)./Ratios.Sample.R236_234_cMB(SMatch.ThUind)).^2);
+            % Isotopic dilution (without blank correction)
+            ID.Th230 = (M230./M229) .* SpikePar.Th229CY .* (WtPar.m_ThBC./WtPar.m_sed)' .* 1./Ratios.Sample.R229_230(:);
+            ID.Th230(ID.Th230 == inf | ID.Th230 == -inf) = NaN;
+            dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2);
+            
+            % Moles Th230 in sediment/blank
+            Th230_n = (M230./M229)./M230 .* SpikePar.Th229CY .* (WtPar.m_ThBC)' .* 1./Ratios.Sample.R229_230(:) * 10^-12;
+            Th230_n(Th230_n < 0) = 0;
+            dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2);
         end
+        % Blank correction
+        Th230_nBC = Th230_n - Th230_n(1);
+        dTh230_nBC = sqrt(dTh230_n.^2 + dTh230_n(1)^2);
+        % Isotopic dilution (with blank correction)
+        ID.Th230BC = Th230_nBC .* M230 ./ WtPar.m_sed' * 1E12;
+        dID.Th230BC = ID.Th230BC .* sqrt((dTh230_nBC./Th230_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+        
+        % Uranium
+        M234 = 234.0409468;
+        M236 = 236.045568;
+        if ~isinf(SpikePar.Th229RY)
+            % Isotopic dilution (without blank correction)
+            ID.U234 = (M234./M236) .* SpikePar.U236CY .* (WtPar.m_UBC./WtPar.m_sed)' .* (SpikePar.U236RY - Ratios.Sample.R236_234(:))./(Ratios.Sample.R236_234(:) .* (SpikePar.U236RY + 1));
+            ID.U234(ID.U234 == inf | ID.U234 == -inf) = NaN;
+            dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2*2);
+            
+            % Moles U234 in sediment/blank
+            U234_n = (M234./M236)./M234 .* SpikePar.U236CY .* (WtPar.m_UBC)' .* (SpikePar.U236RY - Ratios.Sample.R236_234(:))./(Ratios.Sample.R236_234(:) .* (SpikePar.U236RY + 1)) * 10^-12;
+            U234_n(U234_n<0) = 0;
+            dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2*2);
+        else
+            % Isotopic dilution (without blank correction)
+            ID.U234 = (M234./M236) .* SpikePar.U236CY .* (WtPar.m_UBC./WtPar.m_sed)' .* 1./Ratios.Sample.R236_234(:);
+            ID.U234(ID.U234 == inf | ID.U234 == -inf) = NaN;
+            dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2);
+            
+            % Moles U234 in sediment/blank
+            U234_n = (M234./M236)./M234 .* SpikePar.U236CY .* (WtPar.m_UBC)' .* 1./Ratios.Sample.R236_234(:) * 10^-12;
+            U234_n(U234_n<0) = 0;
+            dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2);
+        end
+        % Blank correction
+        U234_nBC = U234_n - U234_n(1);
+        dU234_nBC = sqrt(dU234_n.^2 + dU234_n(1)^2);
+        % Isotopic dilution (with blank correction)
+        ID.U234BC = U234_nBC .* M234 ./ WtPar.m_sed' * 1E12;
+        dID.U234BC = ID.U234BC .* sqrt((dU234_nBC./U234_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
         
     else
         Ratios = NaN;
