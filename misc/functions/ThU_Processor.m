@@ -9,8 +9,14 @@ end
 FileList(hiddenF) = [];
 
 NameList.tot = {FileList.name}';
-NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID) & ~contains(NameList.tot,ThUpar.pBID));
-NameList.procblank = NameList.tot(contains(NameList.tot,ThUpar.pBID));
+
+if ~isempty(ThUpar.pBID)
+    NameList.procblank = NameList.tot(contains(NameList.tot,ThUpar.pBID));
+    NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID) & ~contains(NameList.tot,ThUpar.pBID));
+else
+    NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
+    NameList.procblank = NaN;
+end
 NameList.ICPblanks = NameList.tot(contains(NameList.tot,ThUpar.BID));
 NameList.ICPnatU = NameList.tot(contains(NameList.tot,ThUpar.NatUID));
 
@@ -19,6 +25,9 @@ if length(ThUpar.NSamples) > 1 && length(ThUpar.NSamples) ~= ThUpar.NBlocks
     OUT = NaN;
 elseif isempty(NameList.samples)
     warndlg('Sample-ID character sequence not found.','Incorrect input')
+    OUT = NaN;
+elseif isempty(NameList.procblank)
+    warndlg('Procedural blank-ID character sequence not found.','Incorrect input')
     OUT = NaN;
 elseif isempty(NameList.ICPblanks)
     warndlg('Blank-ID character sequence not found.','Incorrect input')
@@ -42,39 +51,55 @@ else
         SampleSeq = cell(ThUpar.NSamples,ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             if iB == 1
-                SampleSeq(1:ThUpar.NSamples,iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples-1)];
+                if ~isnan(NameList.procblank)
+                    SampleSeq(1:ThUpar.NSamples,iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples-1)];
+                else
+                    SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(1:ThUpar.NSamples);
+                end
             else
-                SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1):ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
+                if ~isnan(NameList.procblank)
+                    SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1):ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
+                else
+                    SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1)+1:ThUpar.NSamples*(iB-1)+ThUpar.NSamples);
+                end
             end
         end
     elseif length(ThUpar.NSamples) > 1
         SampleSeq = cell(max(ThUpar.NSamples),ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             if iB == 1
-                SampleSeq(1:ThUpar.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples(1)-1)];
+                if ~isnan(NameList.procblank)
+                    SampleSeq(1:ThUpar.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples(1)-1)];
+                else
+                    SampleSeq(1:ThUpar.NSamples(1),iB) = NameList.samples(1:ThUpar.NSamples(1));
+                end
             else
-                SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1)):sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB)-1);
+                if ~isnan(NameList.procblank)
+                    SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1)):sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB)-1);
+                else
+                    SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1))+1:sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB));
+                end
             end
         end
     end
     
-    if length(ThUpar.NSamples) == 1 && ThUpar.NSamples*ThUpar.NBlocks ~= numel(NameList.samples)+1
-        warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
-            ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
-            '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
-            'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
-            '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
-            '3,3,3,3,3,3,3,4).'])
-        error('The processing has been terminated (see warning above).')
-    elseif length(ThUpar.NSamples) > 1 && sum(ThUpar.NSamples) ~= numel(NameList.samples)+1
-        warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
-            ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
-            '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
-            'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
-            '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
-            '3,3,3,3,3,3,3,4).'])
-        error('The processing has been terminated (see warning above).')
-    end
+%     if length(ThUpar.NSamples) == 1 && ThUpar.NSamples*ThUpar.NBlocks ~= numel(NameList.samples)+1
+%         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
+%             ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
+%             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
+%             'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
+%             '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
+%             '3,3,3,3,3,3,3,4).'])
+%         error('The processing has been terminated (see warning above).')
+%     elseif length(ThUpar.NSamples) > 1 && sum(ThUpar.NSamples) ~= numel(NameList.samples)+1
+%         warning(['The number of samples in the raw data folder (',num2str(numel(NameList.samples)),...
+%             ') does not match the number of samples to be processed (',num2str(sum(ThUpar.NSamples)),...
+%             '). Please make sure that the "Number of samples per block" has been specified correctly: ',...
+%             'If your analysis blocks contain a variable number of samples, a number has to be specified PER analysis block. ',...
+%             '(Example: 8 blocks, 7 of which contain 3 samples and the last block contains 4. Number of samples per block: ',...
+%             '3,3,3,3,3,3,3,4).'])
+%         error('The processing has been terminated (see warning above).')
+%     end
     
     % Sample Blanks
     SBlankSeq = cell(2,ThUpar.NBlocks);
@@ -330,12 +355,17 @@ else
             Th230_n(Th230_n < 0) = 0;
             dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2);
         end
-        % Blank correction
-        Th230_nBC = Th230_n - Th230_n(1);
-        dTh230_nBC = sqrt(dTh230_n.^2 + dTh230_n(1)^2);
-        % Isotopic dilution (with blank correction)
-        ID.Th230BC = Th230_nBC .* M230 ./ WtPar.m_sed' * 1E12;
-        dID.Th230BC = ID.Th230BC .* sqrt((dTh230_nBC./Th230_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+        if ~isnan(NameList.procblank)
+            % Blank correction
+            Th230_nBC = Th230_n - Th230_n(1);
+            dTh230_nBC = sqrt(dTh230_n.^2 + dTh230_n(1)^2);
+            % Isotopic dilution (with blank correction)
+            ID.Th230BC = Th230_nBC .* M230 ./ WtPar.m_sed' * 1E12;
+            dID.Th230BC = ID.Th230BC .* sqrt((dTh230_nBC./Th230_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+        else
+            ID.Th230BC = nan(size(WtPar.m_sed))';
+            dID.Th230BC = nan(size(WtPar.m_sed))';
+        end
         
         % Uranium
         M234 = 234.0409468;
@@ -361,12 +391,18 @@ else
             U234_n(U234_n<0) = 0;
             dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2);
         end
-        % Blank correction
-        U234_nBC = U234_n - U234_n(1);
-        dU234_nBC = sqrt(dU234_n.^2 + dU234_n(1)^2);
-        % Isotopic dilution (with blank correction)
-        ID.U234BC = U234_nBC .* M234 ./ WtPar.m_sed' * 1E12;
-        dID.U234BC = ID.U234BC .* sqrt((dU234_nBC./U234_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+        
+        if ~isnan(NameList.procblank)
+            % Blank correction (only if Blank ID has been provided)
+            U234_nBC = U234_n - U234_n(1);
+            dU234_nBC = sqrt(dU234_n.^2 + dU234_n(1)^2);
+            % Isotopic dilution (with blank correction)
+            ID.U234BC = U234_nBC .* M234 ./ WtPar.m_sed' * 1E12;
+            dID.U234BC = ID.U234BC .* sqrt((dU234_nBC./U234_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+        else
+            ID.U234BC = nan(size(WtPar.m_sed))';
+            dID.U234BC = nan(size(WtPar.m_sed))';
+        end
         
     else
         Ratios = NaN;
