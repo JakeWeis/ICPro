@@ -51,13 +51,13 @@ else
         SampleSeq = cell(ThUpar.NSamples,ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             if iB == 1
-                if ~isnan(NameList.procblank)
+                if iscell(NameList.procblank)
                     SampleSeq(1:ThUpar.NSamples,iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples-1)];
                 else
                     SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(1:ThUpar.NSamples);
                 end
             else
-                if ~isnan(NameList.procblank)
+                if iscell(NameList.procblank)
                     SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1):ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
                 else
                     SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1)+1:ThUpar.NSamples*(iB-1)+ThUpar.NSamples);
@@ -68,13 +68,13 @@ else
         SampleSeq = cell(max(ThUpar.NSamples),ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             if iB == 1
-                if ~isnan(NameList.procblank)
+                if iscell(NameList.procblank)
                     SampleSeq(1:ThUpar.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples(1)-1)];
                 else
                     SampleSeq(1:ThUpar.NSamples(1),iB) = NameList.samples(1:ThUpar.NSamples(1));
                 end
             else
-                if ~isnan(NameList.procblank)
+                if iscell(NameList.procblank)
                     SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1)):sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB)-1);
                 else
                     SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1))+1:sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB));
@@ -355,7 +355,7 @@ else
             Th230_n(Th230_n < 0) = 0;
             dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(:)./Ratios.Sample.R229_230_cMB(:)).^2);
         end
-        if ~isnan(NameList.procblank)
+        if iscell(NameList.procblank)
             % Blank correction
             Th230_nBC = Th230_n - Th230_n(1);
             dTh230_nBC = sqrt(dTh230_n.^2 + dTh230_n(1)^2);
@@ -392,7 +392,7 @@ else
             dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(:)./Ratios.Sample.R236_234_cMB(:)).^2);
         end
         
-        if ~isnan(NameList.procblank)
+        if iscell(NameList.procblank)
             % Blank correction (only if Blank ID has been provided)
             U234_nBC = U234_n - U234_n(1);
             dU234_nBC = sqrt(dU234_n.^2 + dU234_n(1)^2);
