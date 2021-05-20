@@ -150,9 +150,22 @@ else
     %% PROCESSING
     if compute == 1
         %% STEP 1: TAILING & BLANK CORRECTION
-        
+        % Get list of isotopes analysed
+        nSubMasses = 5; % number of submasses analysed per Isotope
+        Isotopes = importdata([ThUpar.ThURawPath,SampleSeq{1,1}],Del,12);
+        Isotopes = Isotopes.data(:,1);
+        IsotopeList = NaN(numel(Isotopes)/nSubMasses,1);
+        for iI = 1 : numel(Isotopes)/nSubMasses
+            IsotopeList(iI,1) = round(mean(Isotopes(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI))),1);
+        end
+        % find row indices of Th229.5 and Th230.5 counts (for tailing correction)
+        i229_5 = find(IsotopeList==229.5)+((nSubMasses-1)*(find(IsotopeList==229.5)-1)):find(IsotopeList==229.5)+((nSubMasses-1)*find(IsotopeList==229.5));
+        i230_0 = find(IsotopeList==230.0)+((nSubMasses-1)*(find(IsotopeList==230.0)-1)):find(IsotopeList==230.0)+((nSubMasses-1)*find(IsotopeList==230.0));
+        i230_5 = find(IsotopeList==230.5)+((nSubMasses-1)*(find(IsotopeList==230.5)-1)):find(IsotopeList==230.5)+((nSubMasses-1)*find(IsotopeList==230.5));
+                    
+                    
         %%% Sample blank correction
-        Ratios.Sample.cpsTB = NaN(35,nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
+        Ratios.Sample.cpsTB = NaN(numel(Isotopes),nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
             % Blank A raw intensities (correcting first half of sample block)
             DirBlankA = [ThUpar.ThURawPath,SBlankSeq{1,iB}];
@@ -188,11 +201,11 @@ else
                 % Sample raw intensities
                 I_SampleA = I_SampleA.data(:,2:end);
                 nRuns = size(I_SampleA,2);
-                if SType == 0
+                if SType == 1
                     % Tailing Correction
                     Mlm = zeros(size(I_SampleA));
-                    Mlm(11:15,:) = (I_SampleA(6:10,:)-I_SampleA(16:20,:))./...
-                        (log(I_SampleA(6:10,:))-log(I_SampleA(16:20,:)));
+                    Mlm(i230_0,:) = (I_SampleA(i229_5,:)-I_SampleA(i230_5,:))./...
+                        (log(I_SampleA(i229_5,:))-log(I_SampleA(i230_5,:)));
                     Mlm(isnan(Mlm)) = I_SampleA(find(isnan(Mlm))+5);
                     I_SampleA = I_SampleA - Mlm;
                 end
@@ -206,11 +219,11 @@ else
                 I_SampleB = importdata(DirSampleB,Del,12);
                 % Sample raw intensities
                 I_SampleB = I_SampleB.data(:,2:end);
-                if SType == 0
+                if SType == 1
                     % Tailing Correction
                     Mlm = zeros(size(I_SampleB));
-                    Mlm(11:15,:) = (I_SampleB(6:10,:)-I_SampleB(16:20,:))./...
-                        (log(I_SampleB(6:10,:))-log(I_SampleB(16:20,:)));
+                    Mlm(i230_0,:) = (I_SampleB(i229_5,:)-I_SampleB(i230_5,:))./...
+                        (log(I_SampleB(i229_5,:))-log(I_SampleB(i230_5,:)));
                     Mlm(isnan(Mlm)) = I_SampleB(find(isnan(Mlm))+5);
                     I_SampleB = I_SampleB - Mlm;
                 end
@@ -220,7 +233,7 @@ else
         end
         
         %%% NatU blank correction
-        Ratios.NatU.cpsB = NaN(35,nRuns,ThUpar.NBlocks+2);
+        Ratios.NatU.cpsB = NaN(numel(Isotopes) ,nRuns,ThUpar.NBlocks+2);
         for iB = 1 : ThUpar.NBlocks+2
             % NatU Blank raw intensities
             DirNBlank = strcat(ThUpar.ThURawPath,NBlankSeq{iB});
@@ -238,47 +251,74 @@ else
         
         %% STEP 2: INTENSITY AVERAGES (+STD)
         
-        %%% Mean sample and NatU CRM intensity (averaged over submasses and
-        %%% analysis runs)
-        Ratios.Sample.cpsMean = [mean(mean(Ratios.Sample.cpsTB(1:5,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(6:10,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(11:15,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(16:20,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(21:25,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(26:30,:,:,:)));...
-            mean(mean(Ratios.Sample.cpsTB(31:35,:,:,:)))];
+        Ratios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(ThUpar.NSamples),ThUpar.NBlocks);
+        Ratios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,ThUpar.NBlocks+2);
+        dRatios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(ThUpar.NSamples),ThUpar.NBlocks);
+        dRatios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,ThUpar.NBlocks+2);
+        for iI = 1 : numel(Isotopes)/nSubMasses
+            %%% Mean sample and NatU CRM intensity (averaged over submasses and analysis runs)
+            Ratios.Sample.cpsMean(iI,:,:) = permute(mean(Ratios.Sample.cpsTB(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI),:,:,:),[1,2]),[1,3,4,2]);
+            Ratios.NatU.cpsMean(iI,:) = permute(mean(Ratios.NatU.cpsB(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI),:,:,:),[1,2]),[3,1,2]);
+            %%% Standard deviation of mean sample and NatU CRM intensties (STD of submass averages)
+            dRatios.Sample.cpsMean(iI,:,:) = permute(std(mean(Ratios.Sample.cpsTB(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI),:,:,:),1),0,2),[1,3,4,2]);
+            dRatios.NatU.cpsMean(iI,:) = permute(std(mean(Ratios.NatU.cpsB(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI),:,:,:),1),0,2),[3,1,2]);
+        end
         Ratios.Sample.cpsMean(Ratios.Sample.cpsMean < 0) = 0;
-        
-        Ratios.NatU.cpsMean = [mean(mean(Ratios.NatU.cpsB(1:5,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(6:10,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(11:15,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(16:20,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(21:25,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(26:30,:,:)));...
-            mean(mean(Ratios.NatU.cpsB(31:35,:,:)))];
         Ratios.NatU.cpsMean(Ratios.NatU.cpsMean < 0) = 0;
-        
-        %%% Standard deviation of mean sample and NatU CRM intensties (STD of
-        %%% submass averages)
-        dRatios.Sample.cpsMean = [std(mean(Ratios.Sample.cpsTB(1:5,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(6:10,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(11:15,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(16:20,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(21:25,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(26:30,:,:,:)));...
-            std(mean(Ratios.Sample.cpsTB(31:35,:,:,:)))];
         dRatios.Sample.cpsMean(dRatios.Sample.cpsMean < 0) = 0;
-        
-        dRatios.NatU.cpsMean = [std(mean(Ratios.NatU.cpsB(1:5,:,:)));...
-            std(mean(Ratios.NatU.cpsB(6:10,:,:)));...
-            std(mean(Ratios.NatU.cpsB(11:15,:,:)));...
-            std(mean(Ratios.NatU.cpsB(16:20,:,:)));...
-            std(mean(Ratios.NatU.cpsB(21:25,:,:)));...
-            std(mean(Ratios.NatU.cpsB(26:30,:,:)));...
-            std(mean(Ratios.NatU.cpsB(31:35,:,:)))];
         dRatios.NatU.cpsMean(dRatios.NatU.cpsMean < 0) = 0;
         
+%             %%% Mean sample and NatU CRM intensity (averaged over submasses and
+%             %%% analysis runs)
+%             Ratios.Sample.cpsMean = [mean(mean(Ratios.Sample.cpsTB(1:5,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(6:10,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(11:15,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(16:20,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(21:25,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(26:30,:,:,:)));...
+%                 mean(mean(Ratios.Sample.cpsTB(31:35,:,:,:)))];
+%             Ratios.Sample.cpsMean(Ratios.Sample.cpsMean < 0) = 0;
+%             Ratios.Sample.cpsMean = permute(Ratios.Sample.cpsMean,[1,3,4,2]);
+%             
+%             Ratios.NatU.cpsMean = [mean(mean(Ratios.NatU.cpsB(1:5,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(6:10,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(11:15,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(16:20,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(21:25,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(26:30,:,:)));...
+%                 mean(mean(Ratios.NatU.cpsB(31:35,:,:)))];
+%             Ratios.NatU.cpsMean(Ratios.NatU.cpsMean < 0) = 0;
+%             Ratios.NatU.cpsMean = permute(Ratios.NatU.cpsMean,[1,3,2]);
+%             
+%             %%% Standard deviation of mean sample and NatU CRM intensties (STD of
+%             %%% submass averages)
+%             dRatios.Sample.cpsMean = [std(mean(Ratios.Sample.cpsTB(1:5,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(6:10,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(11:15,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(16:20,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(21:25,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(26:30,:,:,:)));...
+%                 std(mean(Ratios.Sample.cpsTB(31:35,:,:,:)))];
+%             dRatios.Sample.cpsMean(dRatios.Sample.cpsMean < 0) = 0;
+%             dRatios.Sample.cpsMean = permute(dRatios.Sample.cpsMean,[1,3,4,2]);
+%             
+%             dRatios.NatU.cpsMean = [std(mean(Ratios.NatU.cpsB(1:5,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(6:10,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(11:15,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(16:20,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(21:25,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(26:30,:,:)));...
+%                 std(mean(Ratios.NatU.cpsB(31:35,:,:)))];
+%             dRatios.NatU.cpsMean(dRatios.NatU.cpsMean < 0) = 0;
+%             dRatios.NatU.cpsMean = permute(dRatios.NatU.cpsMean,[1,3,2]);
+        
         %% STEP 3: RATIOS (+STD)
+        i229_0 = find(IsotopeList==229.0);
+        i230_0 = find(IsotopeList==230.0);
+        i234_0 = find(IsotopeList==234.0);
+        i235_0 = find(IsotopeList==235.0);
+        i236_0 = find(IsotopeList==236.0);
+        
         Ratios.Sample.R229_230 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
         Ratios.Sample.R236_234 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
         Ratios.NatU.R235_234 = NaN(ThUpar.NBlocks,1);
@@ -287,46 +327,53 @@ else
         dRatios.NatU.R235_234 = NaN(ThUpar.NBlocks,1);
         for iB = 1 : ThUpar.NBlocks
             if length(ThUpar.NSamples) == 1
-                iB1 = 1 : ThUpar.NSamples;
+                s = 1 : ThUpar.NSamples;
             else
-                iB1 = 1 : ThUpar.NSamples(iB);
+                s = 1 : ThUpar.NSamples(iB);
             end
             
-            for iB1 = iB1
-                Ratios.Sample.R229_230(iB1,iB) = Ratios.Sample.cpsMean(1,:,iB1,iB)./Ratios.Sample.cpsMean(3,:,iB1,iB);
-                Ratios.Sample.R236_234(iB1,iB) = Ratios.Sample.cpsMean(7,:,iB1,iB)./Ratios.Sample.cpsMean(5,:,iB1,iB);
+            for iB1 = s
+                Ratios.Sample.R229_230(iB1,iB) = Ratios.Sample.cpsMean(i229_0,iB1,iB)./Ratios.Sample.cpsMean(i230_0,iB1,iB);
+                Ratios.Sample.R236_234(iB1,iB) = Ratios.Sample.cpsMean(i236_0,iB1,iB)./Ratios.Sample.cpsMean(i234_0,iB1,iB);
                 dRatios.Sample.R229_230(iB1,iB) = Ratios.Sample.R229_230(iB1,iB)*sqrt(...
-                    (dRatios.Sample.cpsMean(1,:,iB1,iB)/Ratios.Sample.cpsMean(1,:,iB1,iB))^2+...
-                    (dRatios.Sample.cpsMean(3,:,iB1,iB)/Ratios.Sample.cpsMean(3,:,iB1,iB))^2);
+                    (dRatios.Sample.cpsMean(i229_0,iB1,iB)/Ratios.Sample.cpsMean(i229_0,iB1,iB)).^2+...
+                    (dRatios.Sample.cpsMean(i230_0,iB1,iB)/Ratios.Sample.cpsMean(i230_0,iB1,iB)).^2);
                 dRatios.Sample.R236_234(iB1,iB) = Ratios.Sample.R236_234(iB1,iB)*sqrt(...
-                    (dRatios.Sample.cpsMean(7,:,iB1,iB)/Ratios.Sample.cpsMean(7,:,iB1,iB))^2+...
-                    (dRatios.Sample.cpsMean(5,:,iB1,iB)/Ratios.Sample.cpsMean(5,:,iB1,iB))^2);
+                    (dRatios.Sample.cpsMean(i236_0,iB1,iB)/Ratios.Sample.cpsMean(i236_0,iB1,iB))^2+...
+                    (dRatios.Sample.cpsMean(i234_0,iB1,iB)/Ratios.Sample.cpsMean(i234_0,iB1,iB))^2);
             end
         end
         
         for iB = 1 : ThUpar.NBlocks+2
-            Ratios.NatU.R235_234(iB,1) = Ratios.NatU.cpsMean(6,:,iB)./Ratios.NatU.cpsMean(5,:,iB);
+            Ratios.NatU.R235_234(iB,1) = Ratios.NatU.cpsMean(i235_0,iB)./Ratios.NatU.cpsMean(i234_0,iB);
             dRatios.NatU.R235_234(iB,1) = Ratios.NatU.R235_234(iB,1)*sqrt(...
-                (dRatios.NatU.cpsMean(6,:,iB)/Ratios.NatU.cpsMean(6,:,iB))^2+...
-                (dRatios.NatU.cpsMean(5,:,iB)/Ratios.NatU.cpsMean(5,:,iB))^2);
+                (dRatios.NatU.cpsMean(i235_0,iB)/Ratios.NatU.cpsMean(i235_0,iB))^2+...
+                (dRatios.NatU.cpsMean(i234_0,iB)/Ratios.NatU.cpsMean(i234_0,iB))^2);
         end
         
         %% STEP 4: MASS BIAS CORRECTION
         
         CRM145 = 137.285066;
+        % Isotope masses
+        m229 = 229.031754;
+        m230 = 230.033126;
+        m234 = 234.0409468;
+        m235 = 235.044;
+        m236 = 236.045568;
+        
         R235_234_mean = mean(Ratios.NatU.R235_234);
         dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/ThUpar.NBlocks+2;
-        f = (log(CRM145/R235_234_mean))/log(235.044/234.0409468);
-        df = abs((dR235_234_mean./R235_234_mean)/(log(235.044/234.0409468)));
+        f = (log(CRM145/R235_234_mean))/log(m235/m234);
+        df = abs((dR235_234_mean./R235_234_mean)/(log(m235/m234)));
         
-        Ratios.Sample.R229_230_cMB = Ratios.Sample.R229_230*(229.031754/230.033126)^f;
-        dRatios.Sample.R229_230_cMB = abs(Ratios.Sample.R229_230_cMB.*sqrt(((dRatios.Sample.R229_230)./(Ratios.Sample.R229_230)).^2+(log(229.031754/230.033126).*df).^2));
+        Ratios.Sample.R229_230_cMB = Ratios.Sample.R229_230*(m229/m230)^f;
+        dRatios.Sample.R229_230_cMB = abs(Ratios.Sample.R229_230_cMB.*sqrt(((dRatios.Sample.R229_230)./(Ratios.Sample.R229_230)).^2+(log(m229/m230).*df).^2));
         
-        Ratios.Sample.R236_234_cMB = Ratios.Sample.R236_234*(236.045568/234.0409468)^f;
-        dRatios.Sample.R236_234_cMB = abs(Ratios.Sample.R236_234_cMB.*sqrt(((dRatios.Sample.R236_234)./(Ratios.Sample.R236_234)).^2+(log(236.045568/234.0409468).*df).^2));
+        Ratios.Sample.R236_234_cMB = Ratios.Sample.R236_234*(m236/m234)^f;
+        dRatios.Sample.R236_234_cMB = abs(Ratios.Sample.R236_234_cMB.*sqrt(((dRatios.Sample.R236_234)./(Ratios.Sample.R236_234)).^2+(log(m236/m234).*df).^2));
         
-        Ratios.NatU.R235_234_cMB = Ratios.NatU.R235_234*(235.044/234.0409468)^f;
-        dRatios.NatU.R235_234_cMB = abs(Ratios.NatU.R235_234_cMB.*sqrt(((dRatios.NatU.R235_234)./(Ratios.NatU.R235_234)).^2+(log(235.044/234.0409468).*df).^2));
+        Ratios.NatU.R235_234_cMB = Ratios.NatU.R235_234*(m235/m234)^f;
+        dRatios.NatU.R235_234_cMB = abs(Ratios.NatU.R235_234_cMB.*sqrt(((dRatios.NatU.R235_234)./(Ratios.NatU.R235_234)).^2+(log(m235/m234).*df).^2));
               
         %% STEP 5: BLANK CORRECTION & ISOTOPIC DILUTION
         dscale = 0.0001;
@@ -337,23 +384,27 @@ else
         if ~isinf(SpikePar.Th229RY)
             % Isotopic dilution (without blank correction)
             ID.Th230 = (M230./M229) .* SpikePar.Th229CY .* (WtPar.m_ThBC./WtPar.m_sed)' .* (SpikePar.Th229RY - Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230)))./(Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230)) .* (SpikePar.Th229RY + 1));
-            ID.Th230(ID.Th230 == inf | ID.Th230 == -inf) = NaN;
+            ID.Th230(ID.Th230 <= 0 | isnan(ID.Th230)) = 0;
             dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))).^2*2);
+            dID.Th230(dID.Th230 <= 0 | isnan(dID.Th230)) = 0;
             
             % Moles Th230 in sediment/blank
             Th230_n = (M230./M229)./M230 .* SpikePar.Th229CY .* (WtPar.m_ThBC)' .* (SpikePar.Th229RY - Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230)))./(Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230)) .* (SpikePar.Th229RY + 1)) * 10^-12;
-            Th230_n(Th230_n < 0) = 0;
+            Th230_n(Th230_n <= 0 | isnan(Th230_n)) = 0;
             dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))).^2*2);
+            dTh230_n(dTh230_n <= 0 | isnan(dTh230_n)) = 0;
         else
             % Isotopic dilution (without blank correction)
             ID.Th230 = (M230./M229) .* SpikePar.Th229CY .* (WtPar.m_ThBC./WtPar.m_sed)' .* 1./Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230));
-            ID.Th230(ID.Th230 == inf | ID.Th230 == -inf) = NaN;
+            ID.Th230(ID.Th230 <= 0 | isnan(ID.Th230)) = 0;
             dID.Th230 = ID.Th230 .* sqrt((dscale./WtPar.m_ThBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))).^2);
+            dID.Th230(dID.Th230 <= 0 | isnan(dID.Th230)) = 0;
             
             % Moles Th230 in sediment/blank
             Th230_n = (M230./M229)./M230 .* SpikePar.Th229CY .* (WtPar.m_ThBC)' .* 1./Ratios.Sample.R229_230(~isnan(Ratios.Sample.R229_230)) * 10^-12;
-            Th230_n(Th230_n < 0) = 0;
+            Th230_n(Th230_n < 0 | isnan(Th230_n)) = 0;
             dTh230_n = Th230_n .* sqrt((dscale./WtPar.m_ThBC').^2 + (dRatios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R229_230_cMB(~isnan(Ratios.Sample.R229_230))).^2);
+            dTh230_n(dTh230_n < 0 | isnan(dTh230_n)) = 0;
         end
         if iscell(NameList.procblank)
             % Blank correction
@@ -361,7 +412,9 @@ else
             dTh230_nBC = sqrt(dTh230_n.^2 + dTh230_n(1)^2);
             % Isotopic dilution (with blank correction)
             ID.Th230BC = Th230_nBC .* M230 ./ WtPar.m_sed' * 1E12;
+            ID.Th230BC(ID.Th230BC <= 0 | isnan(ID.Th230BC)) = 0;
             dID.Th230BC = ID.Th230BC .* sqrt((dTh230_nBC./Th230_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+            dID.Th230BC(dID.Th230BC <= 0 | isnan(dID.Th230BC)) = 0;
         else
             ID.Th230BC = nan(size(WtPar.m_sed))';
             dID.Th230BC = nan(size(WtPar.m_sed))';
@@ -370,25 +423,25 @@ else
         % Uranium
         M234 = 234.0409468;
         M236 = 236.045568;
-        if ~isinf(SpikePar.Th229RY)
+        if ~isinf(SpikePar.U236RY)
             % Isotopic dilution (without blank correction)
             ID.U234 = (M234./M236) .* SpikePar.U236CY .* (WtPar.m_UBC./WtPar.m_sed)' .* (SpikePar.U236RY - Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230)))./(Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230)) .* (SpikePar.U236RY + 1));
-            ID.U234(ID.U234 == inf | ID.U234 == -inf) = NaN;
+            ID.U234(ID.U234 <= 0 | isnan(ID.U234)) = 0;
             dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))).^2*2);
             
             % Moles U234 in sediment/blank
             U234_n = (M234./M236)./M234 .* SpikePar.U236CY .* (WtPar.m_UBC)' .* (SpikePar.U236RY - Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230)))./(Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230)) .* (SpikePar.U236RY + 1)) * 10^-12;
-            U234_n(U234_n<0) = 0;
+            U234_n(U234_n<0 | isnan(U234_n)) = 0;
             dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))).^2*2);
         else
             % Isotopic dilution (without blank correction)
             ID.U234 = (M234./M236) .* SpikePar.U236CY .* (WtPar.m_UBC./WtPar.m_sed)' .* 1./Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230));
-            ID.U234(ID.U234 == inf | ID.U234 == -inf) = NaN;
+            ID.U234(ID.U234 <= 0 | isnan(ID.U234)) = 0;
             dID.U234 = ID.U234 .* sqrt((dscale./WtPar.m_UBC').^2 + (dscale./WtPar.m_sed').^2 + (dRatios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))).^2);
             
             % Moles U234 in sediment/blank
             U234_n = (M234./M236)./M234 .* SpikePar.U236CY .* (WtPar.m_UBC)' .* 1./Ratios.Sample.R236_234(~isnan(Ratios.Sample.R229_230)) * 10^-12;
-            U234_n(U234_n<0) = 0;
+            U234_n(U234_n<0 | isnan(U234_n)) = 0;
             dU234_n = U234_n .* sqrt((dscale./WtPar.m_UBC').^2 + (dRatios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))./Ratios.Sample.R236_234_cMB(~isnan(Ratios.Sample.R229_230))).^2);
         end
         
@@ -398,7 +451,9 @@ else
             dU234_nBC = sqrt(dU234_n.^2 + dU234_n(1)^2);
             % Isotopic dilution (with blank correction)
             ID.U234BC = U234_nBC .* M234 ./ WtPar.m_sed' * 1E12;
+            ID.U234BC(ID.U234BC <= 0 | isnan(ID.U234BC)) = 0;
             dID.U234BC = ID.U234BC .* sqrt((dU234_nBC./U234_nBC).^2 + (dscale./WtPar.m_sed)'.^2);
+            dID.U234BC(dID.U234BC <= 0 | isnan(dID.U234BC)) = 0;
         else
             ID.U234BC = nan(size(WtPar.m_sed))';
             dID.U234BC = nan(size(WtPar.m_sed))';
