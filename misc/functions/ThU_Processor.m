@@ -154,6 +154,7 @@ else
         nSubMasses = 5; % number of submasses analysed per Isotope
         Isotopes = importdata([ThUpar.ThURawPath,SampleSeq{1,1}],Del,12);
         Isotopes = Isotopes.data(:,1);
+        assert(rem(numel(Isotopes)/nSubMasses,1) == 0,'It appears that the number of submasses measured per isotope is not five. Contact support immediately!') % 
         IsotopeList = NaN(numel(Isotopes)/nSubMasses,1);
         for iI = 1 : numel(Isotopes)/nSubMasses
             IsotopeList(iI,1) = round(mean(Isotopes(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI))),1);
@@ -162,8 +163,7 @@ else
         i229_5 = find(IsotopeList==229.5)+((nSubMasses-1)*(find(IsotopeList==229.5)-1)):find(IsotopeList==229.5)+((nSubMasses-1)*find(IsotopeList==229.5));
         i230_0 = find(IsotopeList==230.0)+((nSubMasses-1)*(find(IsotopeList==230.0)-1)):find(IsotopeList==230.0)+((nSubMasses-1)*find(IsotopeList==230.0));
         i230_5 = find(IsotopeList==230.5)+((nSubMasses-1)*(find(IsotopeList==230.5)-1)):find(IsotopeList==230.5)+((nSubMasses-1)*find(IsotopeList==230.5));
-                    
-                    
+        
         %%% Sample blank correction
         Ratios.Sample.cpsTB = NaN(numel(Isotopes),nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
         for iB = 1 : ThUpar.NBlocks
