@@ -201,14 +201,12 @@ else
                 % Sample raw intensities
                 I_SampleA = I_SampleA.data(:,2:end);
                 nRuns = size(I_SampleA,2);
-                if SType == 1
-                    % Tailing Correction
-                    Mlm = zeros(size(I_SampleA));
-                    Mlm(i230_0,:) = (I_SampleA(i229_5,:)-I_SampleA(i230_5,:))./...
-                        (log(I_SampleA(i229_5,:))-log(I_SampleA(i230_5,:)));
-                    Mlm(isnan(Mlm)) = I_SampleA(find(isnan(Mlm))+5);
-                    I_SampleA = I_SampleA - Mlm;
-                end
+                % Tailing Correction
+                Mlm = zeros(size(I_SampleA));
+                Mlm(i230_0,:) = (I_SampleA(i229_5,:)-I_SampleA(i230_5,:))./...
+                    (log(I_SampleA(i229_5,:))-log(I_SampleA(i230_5,:)));
+                Mlm(isnan(Mlm)) = I_SampleA(find(isnan(Mlm))+5);
+                I_SampleA = I_SampleA - Mlm;
                 % Blank Correction
                 Ratios.Sample.cpsTB(:,:,iBx,iB) = I_SampleA - I_SBlankA;
             end
@@ -219,14 +217,12 @@ else
                 I_SampleB = importdata(DirSampleB,Del,12);
                 % Sample raw intensities
                 I_SampleB = I_SampleB.data(:,2:end);
-                if SType == 1
-                    % Tailing Correction
-                    Mlm = zeros(size(I_SampleB));
-                    Mlm(i230_0,:) = (I_SampleB(i229_5,:)-I_SampleB(i230_5,:))./...
-                        (log(I_SampleB(i229_5,:))-log(I_SampleB(i230_5,:)));
-                    Mlm(isnan(Mlm)) = I_SampleB(find(isnan(Mlm))+5);
-                    I_SampleB = I_SampleB - Mlm;
-                end
+                % Tailing Correction
+                Mlm = zeros(size(I_SampleB));
+                Mlm(i230_0,:) = (I_SampleB(i229_5,:)-I_SampleB(i230_5,:))./...
+                    (log(I_SampleB(i229_5,:))-log(I_SampleB(i230_5,:)));
+                Mlm(isnan(Mlm)) = I_SampleB(find(isnan(Mlm))+5);
+                I_SampleB = I_SampleB - Mlm;
                 % Blank Correction
                 Ratios.Sample.cpsTB(:,:,iBx,iB) = I_SampleB - I_SBlankB;
             end
