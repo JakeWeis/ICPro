@@ -4,10 +4,10 @@ SimpleRinse = 1;
 
 %% Retrieve file names and separate by type (samples, procedural blank, rinse, NatU)
 % Add '/' to raw data path if not present
-if ThUpar.ThURawPath(end) ~= filesep
-    ThUpar.ThURawPath(end+1) = filesep;
+if ThUpar.RawPath(end) ~= filesep
+    ThUpar.RawPath(end+1) = filesep;
 end
-FileList = dir([ThUpar.ThURawPath,'*.txt']);
+FileList = dir([ThUpar.RawPath,'*.txt']);
 
 % Create list of file names and separate by type
 NameList.tot = {FileList.name}';
@@ -31,11 +31,11 @@ assert(~isempty(NameList.ICPnatU),'ICP NatU character sequence not found.')
 Dels = {';','\t',',',' '};
 DelCheck = cell(length(Dels),1);
 for iB = 1 : length(Dels)
-    DelCheck{iB} = class(importdata([ThUpar.ThURawPath,NameList.samples{1}],Dels{iB},12));
+    DelCheck{iB} = class(importdata([ThUpar.RawPath,NameList.samples{1}],Dels{iB},12));
 end
 Del = Dels(strcmp(DelCheck,'struct'));Del = Del{1};
 
-nRunCheck = importdata([ThUpar.ThURawPath,NameList.samples{1}],Del,12);
+nRunCheck = importdata([ThUpar.RawPath,NameList.samples{1}],Del,12);
 nRuns = size(nRunCheck.data(1,2:end),2);
 
 %% Create analysis sequences (only required for accurate blank correction), else use name lists
@@ -58,7 +58,7 @@ if compute == 1
     %% STEP 1: TAILING & BLANK CORRECTION
     % Get list of isotopes analysed
     nSubMasses = 5; % number of submasses analysed per Isotope
-    Isotopes = importdata([ThUpar.ThURawPath,SampleSeq{1,1}],Del,12);
+    Isotopes = importdata([ThUpar.RawPath,SampleSeq{1,1}],Del,12);
     Isotopes = Isotopes.data(:,1);
     assert(rem(numel(Isotopes)/nSubMasses,1) == 0,'It appears that the number of submasses measured per isotope is not five. Contact support immediately!') %
     IsotopeList = NaN(numel(Isotopes)/nSubMasses,1);
@@ -78,7 +78,7 @@ if compute == 1
         % Blank raw intensities averaged over each blank measured
         I_Blank = NaN(numel(Isotopes),nRuns,numel(SBlankSeq));
         for iB = 1 : numel(SBlankSeq)
-            DirBlank = [ThUpar.ThURawPath,SBlankSeq{iB}];
+            DirBlank = [ThUpar.RawPath,SBlankSeq{iB}];
             I_BlankImport = importdata(DirBlank,Del,12);
             I_Blank(:,:,iB) = I_BlankImport.data(:,2:end);
         end
@@ -87,7 +87,7 @@ if compute == 1
         % Sample tailing and blank correction
         for iS = 1 : numel(SampleSeq)
             % Sample raw intensities
-            DirSample = strcat(ThUpar.ThURawPath,SampleSeq{iS});
+            DirSample = strcat(ThUpar.RawPath,SampleSeq{iS});
             I_Sample = importdata(DirSample,Del,12);
             I_Sample = I_Sample.data(:,2:end);
             
@@ -106,7 +106,7 @@ if compute == 1
         Ratios.NatU.cpsB = NaN(numel(Isotopes),nRuns,numel(NatUSeq));
         for iN = 1 : ThUpar.NBlocks+2
             % NatU raw intensities
-            DirNatU = strcat(ThUpar.ThURawPath,NatUSeq{iN});
+            DirNatU = strcat(ThUpar.RawPath,NatUSeq{iN});
             I_NatU = importdata(DirNatU,Del,12);
             I_NatU = I_NatU.data(:,2:end);
             
@@ -230,7 +230,11 @@ if compute == 1
     m236 = 236.045568;
     
     R235_234_mean = mean(Ratios.NatU.R235_234);
-    dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/ThUpar.NBlocks+2;
+    if SimpleRinse == 0
+        dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/ThUpar.NBlocks+2;
+    else
+        dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/numel(NatUSeq);
+    end
     f = (log(CRM145/R235_234_mean))/log(m235/m234);
     df = abs((dR235_234_mean./R235_234_mean)/(log(m235/m234)));
     
@@ -428,8 +432,8 @@ end
 for iB = 1 : length(Sequence)
     Sequence{iB} = Sequence{iB}(1:end-4);
 end
-if ~(exist([ThUpar.ThURawPath,'output',filesep],'dir'))
-    mkdir([ThUpar.ThURawPath,'output'])
+if ~(exist([ThUpar.RawPath,'output',filesep],'dir'))
+    mkdir([ThUpar.RawPath,'output'])
 end
 end
 
@@ -437,11 +441,11 @@ function Ratios = TailingBlankCorrection(Isotopes,nRuns,ThUpar,SampleSeq,SBlankS
 Ratios.Sample.cpsTB = NaN(numel(Isotopes),nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
 for iB = 1 : ThUpar.NBlocks
     % Blank A raw intensities (correcting first half of sample block)
-    DirBlankA = [ThUpar.ThURawPath,SBlankSeq{1,iB}];
+    DirBlankA = [ThUpar.RawPath,SBlankSeq{1,iB}];
     I_SBlankA = importdata(DirBlankA,Del,12);
     I_SBlankA = I_SBlankA.data(:,2:end);
     % Blank B raw intensities (correcting second half of sample block)
-    DirBlankB = strcat(ThUpar.ThURawPath,SBlankSeq{2,iB});
+    DirBlankB = strcat(ThUpar.RawPath,SBlankSeq{2,iB});
     I_SBlankB = importdata(DirBlankB,Del,12);
     I_SBlankB = I_SBlankB.data(:,2:end);
     
@@ -465,7 +469,7 @@ for iB = 1 : ThUpar.NBlocks
     
     % First half of sample block
     for iBx = iB1
-        DirSampleA = strcat(ThUpar.ThURawPath,SampleSeq{iBx,iB});
+        DirSampleA = strcat(ThUpar.RawPath,SampleSeq{iBx,iB});
         I_SampleA = importdata(DirSampleA,Del,12);
         % Sample raw intensities
         I_SampleA = I_SampleA.data(:,2:end);
@@ -481,7 +485,7 @@ for iB = 1 : ThUpar.NBlocks
     
     % Second half of sample block
     for iBx = iB2
-        DirSampleB = strcat(ThUpar.ThURawPath,SampleSeq{iBx,iB});
+        DirSampleB = strcat(ThUpar.RawPath,SampleSeq{iBx,iB});
         I_SampleB = importdata(DirSampleB,Del,12);
         % Sample raw intensities
         I_SampleB = I_SampleB.data(:,2:end);
@@ -499,12 +503,12 @@ for iB = 1 : ThUpar.NBlocks
     Ratios.NatU.cpsB = NaN(numel(Isotopes) ,nRuns,ThUpar.NBlocks+2);
     for iB = 1 : ThUpar.NBlocks+2
         % NatU Blank raw intensities
-        DirNBlank = strcat(ThUpar.ThURawPath,NBlankSeq{iB});
+        DirNBlank = strcat(ThUpar.RawPath,NBlankSeq{iB});
         I_NBlank = importdata(DirNBlank,Del,12);
         I_NBlank = I_NBlank.data(:,2:end);
         
         % NatU raw intensities
-        DirNatU = strcat(ThUpar.ThURawPath,NatUSeq{iB});
+        DirNatU = strcat(ThUpar.RawPath,NatUSeq{iB});
         I_NatU = importdata(DirNatU,Del,12);
         I_NatU = I_NatU.data(:,2:end);
         
