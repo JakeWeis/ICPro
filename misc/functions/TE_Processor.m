@@ -1,7 +1,17 @@
-function OUT = TE_Processor(TEpar,C,dC,Isotopes,RunID,WtPar,SpikePar,cps)
+function OUT = TE_Processor(app)
+
+% Split input structure app into variables
+Pref = app.Prefs;
+TEpar = app.Input.AnalysisInfo;
+C = app.Output.TE.C;
+dC = app.Output.TE.dC;
+Isotopes = app.Output.TE.Isotopes;
+RunID = app.Output.TE.RunID;
+WtPar = app.Input.WtPar;
+SpikePar = app.Input.SpikePar;
+cps = app.Input.cps;
 
 %% 1) Concentrations and errors (in ppm), read from raw file
-
 % Run locations
 Sloc = find(RunID.AllInd == 'S'); % Sample locations in measurement sequence
 Bloc = find(RunID.AllInd == 'B'); % procedural blank locations in measurement sequence

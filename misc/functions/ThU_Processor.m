@@ -1,4 +1,10 @@
-function OUT = ThU_Processor(ThUpar,SpikePar,WtPar,compute)
+function OUT = ThU_Processor(app,compute)
+
+% Split input structure into variables
+Pref = app.Prefs;
+ThUpar = app.Input.AnalysisInfo;
+SpikePar = app.Input.SpikePar;
+WtPar = app.Input.WtPar;
 
 SimpleRinse = 1;
 
@@ -18,8 +24,8 @@ else
     NameList.samples = NameList.tot(contains(NameList.tot,ThUpar.SID));
     NameList.procblank = NaN;
 end
-NameList.ICPblanks = NameList.tot(contains(NameList.tot,ThUpar.BID));
-NameList.ICPnatU = NameList.tot(contains(NameList.tot,ThUpar.NatUID));
+NameList.ICPblanks = NameList.tot(contains(NameList.tot,Pref.ThU.BID));
+NameList.ICPnatU = NameList.tot(contains(NameList.tot,Pref.ThU.NatUID));
 
 % Check for correct ID input
 assert(~isempty(NameList.samples),'Sample-ID character sequence not found.')
@@ -40,7 +46,7 @@ nRuns = size(nRunCheck.data(1,2:end),2);
 
 %% Create analysis sequences (only required for accurate blank correction), else use name lists
 if SimpleRinse == 0
-    [SampleSeq,SBlankSeq,NatUSeq,NBlankSeq,Sequence] = MakeSequence(ThUpar,NameList);
+    [SampleSeq,SBlankSeq,NatUSeq,NBlankSeq,Sequence] = MakeSequence(Pref,ThUpar,NameList);
 else
     if ~isempty(ThUpar.pBID)
         SampleSeq = [NameList.procblank;NameList.samples];
@@ -73,7 +79,7 @@ if compute == 1
     % Tailing and blank correction
     if SimpleRinse == 0
         % Individual correction per sample block (more accurate blank correction)
-        Ratios = TailingBlankCorrection(Isotopes,nRuns,ThUpar,SampleSeq,SBlankSeq,NBlankSeq,NatUSeq,Del,i229_5,i230_0,i230_5);
+        Ratios = TailingBlankCorrection(Pref,Isotopes,nRuns,ThUpar,SampleSeq,SBlankSeq,NBlankSeq,NatUSeq,Del,i229_5,i230_0,i230_5);
     else
         % Blank raw intensities averaged over each blank measured
         I_Blank = NaN(numel(Isotopes),nRuns,numel(SBlankSeq));
@@ -104,7 +110,7 @@ if compute == 1
         
         % NatU blank correction
         Ratios.NatU.cpsB = NaN(numel(Isotopes),nRuns,numel(NatUSeq));
-        for iN = 1 : ThUpar.NBlocks+2
+        for iN = 1 : numel(NatUSeq)
             % NatU raw intensities
             DirNatU = strcat(ThUpar.RawPath,NatUSeq{iN});
             I_NatU = importdata(DirNatU,Del,12);
@@ -118,10 +124,10 @@ if compute == 1
     %% STEP 2: INTENSITY AVERAGES (+STD)
     
     if SimpleRinse == 0
-        Ratios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(ThUpar.NSamples),ThUpar.NBlocks);
-        Ratios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,ThUpar.NBlocks+2);
-        dRatios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(ThUpar.NSamples),ThUpar.NBlocks);
-        dRatios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,ThUpar.NBlocks+2);
+        Ratios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        Ratios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,Pref.ThU.NBlocks+2);
+        dRatios.Sample.cpsMean = NaN(numel(Isotopes)/nSubMasses,max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        dRatios.NatU.cpsMean = NaN(numel(Isotopes)/nSubMasses,Pref.ThU.NBlocks+2);
         for iI = 1 : numel(Isotopes)/nSubMasses
             %%% Mean sample and NatU CRM intensity (averaged over submasses and analysis runs)
             Ratios.Sample.cpsMean(iI,:,:) = permute(mean(Ratios.Sample.cpsTB(iI+((nSubMasses-1)*(iI-1)):iI+((nSubMasses-1)*iI),:,:,:),[1,2]),[1,3,4,2]);
@@ -161,17 +167,17 @@ if compute == 1
     i236_0 = find(IsotopeList==236.0);
     
     if SimpleRinse == 0
-        Ratios.Sample.R229_230 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
-        Ratios.Sample.R236_234 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
-        Ratios.NatU.R235_234 = NaN(ThUpar.NBlocks,1);
-        dRatios.Sample.R229_230 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
-        dRatios.Sample.R236_234 = NaN(max(ThUpar.NSamples),ThUpar.NBlocks);
-        dRatios.NatU.R235_234 = NaN(ThUpar.NBlocks,1);
-        for iB = 1 : ThUpar.NBlocks
-            if length(ThUpar.NSamples) == 1
-                s = 1 : ThUpar.NSamples;
+        Ratios.Sample.R229_230 = NaN(max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        Ratios.Sample.R236_234 = NaN(max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        Ratios.NatU.R235_234 = NaN(Pref.ThU.NBlocks,1);
+        dRatios.Sample.R229_230 = NaN(max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        dRatios.Sample.R236_234 = NaN(max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+        dRatios.NatU.R235_234 = NaN(Pref.ThU.NBlocks,1);
+        for iB = 1 : Pref.ThU.NBlocks
+            if length(Pref.ThU.NSamples) == 1
+                s = 1 : Pref.ThU.NSamples;
             else
-                s = 1 : ThUpar.NSamples(iB);
+                s = 1 : Pref.ThU.NSamples(iB);
             end
             
             for iB1 = s
@@ -186,7 +192,7 @@ if compute == 1
             end
         end
         
-        for iB = 1 : ThUpar.NBlocks+2
+        for iB = 1 : Pref.ThU.NBlocks+2
             Ratios.NatU.R235_234(iB,1) = Ratios.NatU.cpsMean(i235_0,iB)./Ratios.NatU.cpsMean(i234_0,iB);
             dRatios.NatU.R235_234(iB,1) = Ratios.NatU.R235_234(iB,1)*sqrt(...
                 (dRatios.NatU.cpsMean(i235_0,iB)/Ratios.NatU.cpsMean(i235_0,iB))^2+...
@@ -231,7 +237,7 @@ if compute == 1
     
     R235_234_mean = mean(Ratios.NatU.R235_234);
     if SimpleRinse == 0
-        dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/ThUpar.NBlocks+2;
+        dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/Pref.ThU.NBlocks+2;
     else
         dR235_234_mean = sqrt(sum((dRatios.NatU.R235_234./Ratios.NatU.R235_234).^2))/numel(NatUSeq);
     end
@@ -353,54 +359,54 @@ end
 
 %% Subfunctions
 
-function [SampleSeq,SBlankSeq,NatUSeq,NBlankSeq,Sequence] = MakeSequence(ThUpar,NameList)
+function [SampleSeq,SBlankSeq,NatUSeq,NBlankSeq,Sequence] = MakeSequence(Pref,ThUpar,NameList)
 %% CREATE SEQUENCE: Sample Sequence
-if length(ThUpar.NSamples) == 1
-    SampleSeq = cell(ThUpar.NSamples,ThUpar.NBlocks);
-    for iB = 1 : ThUpar.NBlocks
+if length(Pref.ThU.NSamples) == 1
+    SampleSeq = cell(Pref.ThU.NSamples,Pref.ThU.NBlocks);
+    for iB = 1 : Pref.ThU.NBlocks
         if iB == 1
             if iscell(NameList.procblank)
-                SampleSeq(1:ThUpar.NSamples,iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples-1)];
+                SampleSeq(1:Pref.ThU.NSamples,iB) = [NameList.procblank;NameList.samples(1:Pref.ThU.NSamples-1)];
             else
-                SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(1:ThUpar.NSamples);
+                SampleSeq(1:Pref.ThU.NSamples,iB) = NameList.samples(1:Pref.ThU.NSamples);
             end
         else
             if iscell(NameList.procblank)
-                SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1):ThUpar.NSamples*(iB-1)+ThUpar.NSamples-1);
+                SampleSeq(1:Pref.ThU.NSamples,iB) = NameList.samples(Pref.ThU.NSamples*(iB-1):Pref.ThU.NSamples*(iB-1)+Pref.ThU.NSamples-1);
             else
-                SampleSeq(1:ThUpar.NSamples,iB) = NameList.samples(ThUpar.NSamples*(iB-1)+1:ThUpar.NSamples*(iB-1)+ThUpar.NSamples);
+                SampleSeq(1:Pref.ThU.NSamples,iB) = NameList.samples(Pref.ThU.NSamples*(iB-1)+1:Pref.ThU.NSamples*(iB-1)+Pref.ThU.NSamples);
             end
         end
     end
-elseif length(ThUpar.NSamples) > 1
-    SampleSeq = cell(max(ThUpar.NSamples),ThUpar.NBlocks);
-    for iB = 1 : ThUpar.NBlocks
+elseif length(Pref.ThU.NSamples) > 1
+    SampleSeq = cell(max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+    for iB = 1 : Pref.ThU.NBlocks
         if iB == 1
             if iscell(NameList.procblank)
-                SampleSeq(1:ThUpar.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:ThUpar.NSamples(1)-1)];
+                SampleSeq(1:Pref.ThU.NSamples(1),iB) = [NameList.procblank;NameList.samples(1:Pref.ThU.NSamples(1)-1)];
             else
-                SampleSeq(1:ThUpar.NSamples(1),iB) = NameList.samples(1:ThUpar.NSamples(1));
+                SampleSeq(1:Pref.ThU.NSamples(1),iB) = NameList.samples(1:Pref.ThU.NSamples(1));
             end
         else
             if iscell(NameList.procblank)
-                SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1)):sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB)-1);
+                SampleSeq(1:Pref.ThU.NSamples(iB),iB) = NameList.samples(sum(Pref.ThU.NSamples(1:iB-1)):sum(Pref.ThU.NSamples(1:iB-1))+Pref.ThU.NSamples(iB)-1);
             else
-                SampleSeq(1:ThUpar.NSamples(iB),iB) = NameList.samples(sum(ThUpar.NSamples(1:iB-1))+1:sum(ThUpar.NSamples(1:iB-1))+ThUpar.NSamples(iB));
+                SampleSeq(1:Pref.ThU.NSamples(iB),iB) = NameList.samples(sum(Pref.ThU.NSamples(1:iB-1))+1:sum(Pref.ThU.NSamples(1:iB-1))+Pref.ThU.NSamples(iB));
             end
         end
     end
 end
 
 % Sample Blanks
-SBlankSeq = cell(2,ThUpar.NBlocks);
-for iB = 1 : ThUpar.NBlocks
+SBlankSeq = cell(2,Pref.ThU.NBlocks);
+for iB = 1 : Pref.ThU.NBlocks
     SBlankSeq(1:2,iB) = NameList.ICPblanks([2+2*(iB-1),3+2*(iB-1)]);
 end
 
 %% CREATE SEQUENCE: NatU CRM Sequence
-NatUSeq = cell(1,ThUpar.NBlocks+2);
-NBlankSeq = cell(1,ThUpar.NBlocks+2);
-for iB = 1 : ThUpar.NBlocks+2
+NatUSeq = cell(1,Pref.ThU.NBlocks+2);
+NBlankSeq = cell(1,Pref.ThU.NBlocks+2);
+for iB = 1 : Pref.ThU.NBlocks+2
     NatUSeq(1,iB) = NameList.ICPnatU(iB);
     % NatU CRM Blanks
     if iB == 1 || iB == 2 || iB == 3
@@ -414,7 +420,7 @@ end
 Sequence{1,1} = NBlankSeq{1};
 Sequence{2,1} = NatUSeq{1};
 Sequence{3,1} = NatUSeq{2};
-for iB = 1 : ThUpar.NBlocks
+for iB = 1 : Pref.ThU.NBlocks
     block{1,1} = SBlankSeq{1,iB};
     for iB1 = 1 : size(SampleSeq,1)
         if ~(isempty(SampleSeq{iB1,iB}))
@@ -437,9 +443,9 @@ if ~(exist([ThUpar.RawPath,'output',filesep],'dir'))
 end
 end
 
-function Ratios = TailingBlankCorrection(Isotopes,nRuns,ThUpar,SampleSeq,SBlankSeq,NBlankSeq,NatUSeq,Del,i229_5,i230_0,i230_5)
-Ratios.Sample.cpsTB = NaN(numel(Isotopes),nRuns,max(ThUpar.NSamples),ThUpar.NBlocks);
-for iB = 1 : ThUpar.NBlocks
+function Ratios = TailingBlankCorrection(Pref,Isotopes,nRuns,ThUpar,SampleSeq,SBlankSeq,NBlankSeq,NatUSeq,Del,i229_5,i230_0,i230_5)
+Ratios.Sample.cpsTB = NaN(numel(Isotopes),nRuns,max(Pref.ThU.NSamples),Pref.ThU.NBlocks);
+for iB = 1 : Pref.ThU.NBlocks
     % Blank A raw intensities (correcting first half of sample block)
     DirBlankA = [ThUpar.RawPath,SBlankSeq{1,iB}];
     I_SBlankA = importdata(DirBlankA,Del,12);
@@ -449,22 +455,22 @@ for iB = 1 : ThUpar.NBlocks
     I_SBlankB = importdata(DirBlankB,Del,12);
     I_SBlankB = I_SBlankB.data(:,2:end);
     
-    if length(ThUpar.NSamples) == 1 && ~(rem(ThUpar.NSamples,2))
+    if length(Pref.ThU.NSamples) == 1 && ~(rem(Pref.ThU.NSamples,2))
         %%% Even & constant number of samples per block
-        iB1 = 1 : ThUpar.NSamples/2;
-        iB2 = ThUpar.NSamples/2+1 : ThUpar.NSamples;
-    elseif length(ThUpar.NSamples) == 1 && ~(~(rem(ThUpar.NSamples,2)))
+        iB1 = 1 : Pref.ThU.NSamples/2;
+        iB2 = Pref.ThU.NSamples/2+1 : Pref.ThU.NSamples;
+    elseif length(Pref.ThU.NSamples) == 1 && ~(~(rem(Pref.ThU.NSamples,2)))
         %%% Odd & constant number of samples per block
-        iB1 = 1 : ceil(ThUpar.NSamples/2);
-        iB2 = ceil(ThUpar.NSamples/2)+1 : ThUpar.NSamples;
-    elseif length(ThUpar.NSamples) > 1 && ~(rem(ThUpar.NSamples(iB),2))
+        iB1 = 1 : ceil(Pref.ThU.NSamples/2);
+        iB2 = ceil(Pref.ThU.NSamples/2)+1 : Pref.ThU.NSamples;
+    elseif length(Pref.ThU.NSamples) > 1 && ~(rem(Pref.ThU.NSamples(iB),2))
         %%% Variable number of samples per block (even number of samples)
-        iB1 = 1 : ThUpar.NSamples(iB)/2;
-        iB2 = ThUpar.NSamples(iB)/2+1 : ThUpar.NSamples(iB);
-    elseif length(ThUpar.NSamples) > 1 && ~(~(rem(ThUpar.NSamples(iB),2)))
+        iB1 = 1 : Pref.ThU.NSamples(iB)/2;
+        iB2 = Pref.ThU.NSamples(iB)/2+1 : Pref.ThU.NSamples(iB);
+    elseif length(Pref.ThU.NSamples) > 1 && ~(~(rem(Pref.ThU.NSamples(iB),2)))
         %%% Variable number of samples per block (odd number of samples)
-        iB1 = 1 : ceil(ThUpar.NSamples(iB)/2);
-        iB2 = ceil(ThUpar.NSamples(iB)/2)+1 : ThUpar.NSamples(iB);
+        iB1 = 1 : ceil(Pref.ThU.NSamples(iB)/2);
+        iB2 = ceil(Pref.ThU.NSamples(iB)/2)+1 : Pref.ThU.NSamples(iB);
     end
     
     % First half of sample block
@@ -500,8 +506,8 @@ for iB = 1 : ThUpar.NBlocks
     end
     
     % NatU blank correction
-    Ratios.NatU.cpsB = NaN(numel(Isotopes) ,nRuns,ThUpar.NBlocks+2);
-    for iB = 1 : ThUpar.NBlocks+2
+    Ratios.NatU.cpsB = NaN(numel(Isotopes) ,nRuns,Pref.ThU.NBlocks+2);
+    for iB = 1 : Pref.ThU.NBlocks+2
         % NatU Blank raw intensities
         DirNBlank = strcat(ThUpar.RawPath,NBlankSeq{iB});
         I_NBlank = importdata(DirNBlank,Del,12);

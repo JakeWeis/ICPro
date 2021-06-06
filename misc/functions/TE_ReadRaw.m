@@ -1,5 +1,9 @@
-function OUT = TE_ReadRaw(TEpar,mode)
+function OUT = TE_ReadRaw(app,mode)
 % Extract ICP data from raw data spread sheet
+
+% Split input structure into variables
+Pref = app.Prefs;
+TEpar = app.Input.AnalysisInfo;
 
 %% Extract list of measurement run IDs
 RunHeader = table2cell(readtable(TEpar.RawPath,'Range','1:1','ReadVariableNames',0))';
