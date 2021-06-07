@@ -21,15 +21,15 @@ RunIDColumn.All(1,2) = RunIDColumn.All(2,2);
 %% Sort runs into groups
 RunID.AllInd = repmat('x',length(RunID.All),1);
 for iR = 1 : length(RunID.All)
-    if contains(RunID.All{iR},TEpar.SID) && ~contains(RunID.All{iR},TEpar.pBID) && ~contains(RunID.All{iR},TEpar.VID) % samples
+    if contains(RunID.All{iR},TEpar.SID) && ~contains(RunID.All{iR},TEpar.pBID) && ~contains(RunID.All{iR},Pref.TE.VID) % samples
         RunID.AllInd(iR) = 'S';
     elseif contains(RunID.All{iR},TEpar.pBID) % procedural blank
         RunID.AllInd(iR) = 'B';
-    elseif contains(RunID.All{iR},TEpar.VID) % spiked samples
+    elseif contains(RunID.All{iR},Pref.TE.VID) % spiked samples
         RunID.AllInd(iR) = 'V';
-    elseif contains(RunID.All{iR},TEpar.RID) % rinses
+    elseif contains(RunID.All{iR},Pref.TE.RID) % rinses
         RunID.AllInd(iR) = 'R';
-    elseif contains(RunID.All{iR},TEpar.QID) % QC
+    elseif contains(RunID.All{iR},Pref.TE.QID) % QC
         RunID.AllInd(iR) = 'Q';
     end
 end

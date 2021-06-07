@@ -6,7 +6,7 @@ ThUpar = app.Input.AnalysisInfo;
 SpikePar = app.Input.SpikePar;
 WtPar = app.Input.WtPar;
 
-SimpleRinse = 1;
+SimpleRinse = 0;
 
 %% Retrieve file names and separate by type (samples, procedural blank, rinse, NatU)
 % Add '/' to raw data path if not present

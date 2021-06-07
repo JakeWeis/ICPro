@@ -2,7 +2,6 @@ function OUT = TE_Processor(app)
 
 % Split input structure app into variables
 Pref = app.Prefs;
-TEpar = app.Input.AnalysisInfo;
 C = app.Output.TE.C;
 dC = app.Output.TE.dC;
 Isotopes = app.Output.TE.Isotopes;
@@ -23,7 +22,7 @@ Qloc = find(RunID.AllInd == 'Q'); % QC locations in measurement sequence
 C.RC = C.Raw;
 dC.RC = dC.Raw;
 
-if TEpar.CCheck.RC == true
+if Pref.TE.Check_RC == true
     % Samples
     for iS = 1 : length(Sloc)
         % find rinses measured before and after respective sample
@@ -98,7 +97,7 @@ end
 C.QC = C.RC;
 dC.QC = dC.RC;
 
-if TEpar.CCheck.QC == true
+if Pref.TE.Check_QC == true
     % Samples
     for iS = 1 : length(Sloc)
         % find QC measured before and after respective sample
@@ -144,7 +143,7 @@ end
 C.SC = C.QC;
 dC.SC = dC.QC;
 
-if TEpar.CCheck.SC == true && ~isempty(Vloc)
+if Pref.TE.Check_SC == true && ~isempty(Vloc)
     % Samples
     for iS = 1 : length(Sloc)
         if length(Vloc) == 1
@@ -184,7 +183,7 @@ end
 C.OC = C.SC;
 dC.OC = dC.SC;
 
-if TEpar.CCheck.OC == true
+if Pref.TE.Check_OC == true
     % Find array row of Re185, Re187, Tm169 and Yb171 concentrations
     for iI = 1 : length(Isotopes)
         if strcmp(Isotopes{iI},'Re185(LR)')
@@ -215,7 +214,7 @@ end
 C.BC = C.OC;
 dC.BC = dC.OC;
 
-if TEpar.CCheck.BC == true
+if Pref.TE.Check_BC == true
     % Samples
     for iS = 1 : length(Sloc)
         C.BC.Sample(:,iS) = C.OC.Sample(:,iS) - C.OC.Blank;
@@ -230,7 +229,7 @@ dC.DC = dC.BC;
 ICPdilution = 5;
 WtPar.m_unc = 1;
 
-if TEpar.CCheck.DC == true
+if Pref.TE.Check_DC == true
     C.DC.f_DC = (ICPdilution .* WtPar.m_4ml .* (WtPar.m_10ml + WtPar.m_ThSC + WtPar.m_USC)) ./ (WtPar.m_sed .* WtPar.m_400ul);
     C.DC.Sample = C.DC.f_DC .* [C.BC.Blank,C.BC.Sample];
     
