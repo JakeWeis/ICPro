@@ -4,7 +4,9 @@ function OUT = ThU_Processor(app,compute)
 Pref = app.Prefs;
 ThUpar = app.Input.AnalysisInfo;
 SpikePar = app.Input.SpikePar;
-WtPar = app.Input.WtPar;
+if compute == 1
+    WtPar = app.Input.WtPar;
+end
 
 SimpleRinse = Pref.ThU.SimpleRinse;
 
