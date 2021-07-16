@@ -62,9 +62,9 @@ if nargin < 4 % no branch or release version provided
         name = 'latest';
     end
 end
-if releaseRequested | versionRequested
+if releaseRequested || versionRequested
     if strcmpi(name, 'latest') % extract the latest version number
-        s = urlread(fullfile(website, user, repository, 'releases', 'latest'));
+        s = webread([website,'/',user,'/',repository,'/releases/latest']);
         % Search based on https://stackoverflow.com/a/23756210/4892892
         [startIndex, endIndex] = regexp(s, '(?<=<title>).*?(?=</title>)');
         releaseLine = s(startIndex:endIndex);
@@ -80,7 +80,7 @@ end
 
 % Download the requested branch or release (ubnless only the version number was requested)
 if ~versionRequested
-    githubLink = fullfile(website, user, repository, 'archive/refs/tags', [versionName, '.zip']);
+    githubLink = [website,'/',user,'/',repository,'/archive/refs/tags/',versionName,'.zip'];
     if ~isempty(varargin)
         downloadName = [varargin{1},filesep,repository, '-', name, '.zip'];
     else
