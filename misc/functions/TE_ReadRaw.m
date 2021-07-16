@@ -73,6 +73,7 @@ if mode == 1
     end
     C.Raw.Sample(rowNA,:) = [];
     dC.Raw.Sample(rowNA,:) = [];
+    
     for iR = 1 : length(RunID.Blank)
         Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Blank(iR),rowE,RunIDColumn.Blank(iR)+RunIDnColumn.Blank(iR)-1],'ReadVariableNames',0);
         C.Raw.Blank(:,iR) = Data{:,1}/1000;
@@ -80,13 +81,20 @@ if mode == 1
     end
     C.Raw.Blank(rowNA,:) = [];
     dC.Raw.Blank(rowNA,:) = [];
-    for iR = 1 : length(RunID.Spike)
-        Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Spike(iR),rowE,RunIDColumn.Spike(iR)+RunIDnColumn.Spike(iR)-1],'ReadVariableNames',0);
-        C.Raw.Spike(:,iR) = Data{:,1}/1000;
-        dC.Raw.Spike(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
+    
+    if ~isempty(RunID.Spike)
+        for iR = 1 : length(RunID.Spike)
+            Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Spike(iR),rowE,RunIDColumn.Spike(iR)+RunIDnColumn.Spike(iR)-1],'ReadVariableNames',0);
+            C.Raw.Spike(:,iR) = Data{:,1}/1000;
+            dC.Raw.Spike(:,iR) = Data{:,ceil(RunIDnColumn.Sample(iR)/2)}/1000;
+        end
+        C.Raw.Spike(rowNA,:) = [];
+        dC.Raw.Spike(rowNA,:) = [];
+    else
+        C.Raw.Spike = [];
+        dC.Raw.Spike = [];
     end
-    C.Raw.Spike(rowNA,:) = [];
-    dC.Raw.Spike(rowNA,:) = [];
+    
     for iR = 1 : length(RunID.Rinse)
         Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.Rinse(iR),rowE,RunIDColumn.Rinse(iR)+RunIDnColumn.Rinse(iR)-1],'ReadVariableNames',0);
         C.Raw.Rinse(:,iR) = Data{:,1}/1000;
@@ -94,6 +102,7 @@ if mode == 1
     end
     C.Raw.Rinse(rowNA,:) = [];
     dC.Raw.Rinse(rowNA,:) = [];
+    
     for iR = 1 : length(RunID.QC)
         Data = readtable(TEpar.RawPath,'Range',[rowS,RunIDColumn.QC(iR),rowE,RunIDColumn.QC(iR)+RunIDnColumn.QC(iR)-1],'ReadVariableNames',0);
         C.Raw.QC(:,iR) = Data{:,1}/1000;
