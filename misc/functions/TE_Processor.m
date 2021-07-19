@@ -36,7 +36,7 @@ if Pref.TE.Check_RC == true
         
         % correct raw intensities of Th and U (for isotopic dilution)
         % +++++++++++++ Requires rinse raw counts ++++++++++++++++++++
-        if isempty(find(isnan(cps.Rinse),1))
+        if isfield(cps,'Rinse')
             cps.Sample(:,iS) = cps.Sample(:,iS) - mean([cps.Rinse(:,R1),cps.Rinse(:,R2)],2);
         else
             if iS == 1
@@ -226,7 +226,7 @@ end
 %% 7) Dilution correction (DC)
 C.DC = C.BC;
 dC.DC = dC.BC;
-ICPdilution = 5;
+ICPdilution = str2double(app.Prefs.TE.CSLdil);
 WtPar.m_unc = 1;
 
 if Pref.TE.Check_DC == true
